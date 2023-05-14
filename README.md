@@ -8,6 +8,7 @@ CONSENSO_D configurar 3 scripts:
 Configurando los scripts
 
 CLONAR EL REPOSITORIO
+
 En la terminal ejecutar el siguientes comando
 ```
 git clone https://github.com/gvaleman/CONSENSO_D.git
