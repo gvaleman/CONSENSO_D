@@ -3,15 +3,15 @@ CONSENSO_D es un conjunto de 3 scripts diseñado por el equipo de secuenciación
 
 CONSENSO_D configurar 3 scripts:
 
-CONSENSO para generar una secuencia consenso
+  - *CONSENSO* para generar una secuencia consenso
 
-contarX para contar el numero de gaps(X) en una o mas secuencias consensos
+  - *contarX* para contar el numero de gaps(X) en una o mas secuencias consensos
 
-RENOMBRAR para renombrar uno o más nombres de las secuencias en un archivo fasta o multifasta
+  - *RENOMBRAR* para renombrar uno o más nombres de las secuencias en un archivo fasta o multifasta
 
 Configurando los scripts
 
-CLONAR EL REPOSITORIO
+  CLONAR EL REPOSITORIO
 
 En la terminal ejecutar el siguientes comando
 ```
