@@ -23,20 +23,6 @@ chmod +x CONFIGURAR
 CONSENSO es un script diseñado por el equipo de secuenciación y genómica del ICS con la finalidad de mapear, ensamblar y generar una secuencia consenso de los 4 serotipos de Dengue a partir de archivos fastq de secuenciadores NANOPORE.
 CONSENSO automatiza el paso a paso del proceso para la generación de una secuencia consenso.
 
-EL proceso paso a paso para la obtención de una secuencia consenso incluye por cada secuencia
-   1- Descompreción: LOs archivos fastq productos de la secuenciación nanopore están comprimidos en un archivo gz. El objetivo de almacenar los archivos en este formato es no utilizar mucho espacio en el disco de la PC. Los programas no utilizan estos formatos por lo que es necesario descomprimirlos
-   2- Concatenación: Cada muestra secuenciada genera varios archivos fastq comprimido. Cada archivo contiene entre 1000 y 4000 reads según la configuración de la secuenciación. Todos los archivos fastq se deben concatenar para dar paso a un solo archivo que contenga todas las lecturas.
-   3- Mapeo contra referencia: Las lecturas obtenidas de la secuenciación (que ahora están en el archivo fastq concatenado) se deben alinear contra una secuencia de referencia. En este paso se realiza la alineación y se genera un archivo que contiene la información del alineamiento de todos los segmentos (reads) a una secuencia de referencia. Este archivo se genera en formato SAM
-   4- Convertir de SAM a BAM: El archivo SAM es convertido a un archivo de formato BAM que es una versión binaria comprimida del archivo SAM. que es útil porque es mucho más compacto que el archivo SAM y se puede indexar para un acceso rápido a regiones específicas, lo que lo hace ideal para el análisis de grandes cantidades de datos de secuenciación.
-   5- Ordenar y filtrar las lecturas alineadas: Se realiza esta filtración y ordenamiento para mejorar la calidad de los datos y aumentar la precisión de la secuencia consenso resultante.
-   6-Indexación del mapeo: Una vez teniendo la información de la alineación de los fragmentos filtrado y ordenado, se genera un archivo de indexación. Es decir, un archivo que contiene la información y las coordenadas de los resultados y cambios de las bases nitrogenadas de los segmentos alineados con respecto a la secuencia de referencia. 
-   7- Obtner un archivo VCF:el archivo BCF se genera a partir del archivo indexado. Este archivo contiene información específican (cambio y posición del cambio) de las bases nitrogenadas del ADN/ARN secuenciado. 
-   8- Secuencia consenso: En este paso, se toma la información del archivo VCF que contiene los cambios del material secuenciado e inserta estos cambios a una secuencia de referencia. 
-   9- Renombrar secuencia de referencia: UNa vez que se insertaron los cambios a la secuencia se debe referencia se debe renombrar esta secuencia con el nombre de la muestra o barcode analizado.
-   10- fastq a fasta: La secuencia definitiva es almacenada en formato fastq, por lo que se debe convertir a formato fasta
-
-Estos 10 pasos son realizados muestra por muestra y de manera automática por el scipt CONSENSO. Adicionalmente, una vez generadas todas las secuencias consenso, el script genera un solo archivo "ALL_CONSENSUS.FASTA" que contiene a todas las secuencias
-
 INSTRUCCIONES:
 - seleccionar las carpetas de los barcode de serotipo que desea ensamblar y guardarlas en un directorio de trabajo
 - Abrir una terminal, haciendo click sobre el icono de la terminal o con la combinacion de teclas CTRL+ALT+T
