@@ -1,6 +1,9 @@
 # CONSENSO_D
 CONSENSO_D es un conjunto de 3 scripts diseñado por el equipo de secuenciación y genómica del instituto de ciencias sostenibles con la finalidad de mapear, ensamblar y generar una secuencia consenso de los 4 serotipos de Dengue a partir de archivos fastq de secuenciadores NANOPORE.
-CONSENSO automatiza el paso a paso del proceso para la generación de una secuencia consenso.
+CONSENSO_D configurar 3 scripts:
+	CONSENSO para generar una secuencia consenso
+	contarX para contar el numero de gaps(X) en una o mas secuencias consensos
+	RENOMBRAR para renombrar uno o más nombres de las secuencias en un archivo fasta o multifasta
 
 Configurando los scripts
 
