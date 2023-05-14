@@ -41,9 +41,12 @@ Ejemplo:
 ./CONSENSO DENV_1 '/home/ics2/CONSENSO_D/DENV1_fastq_pass'
 ```
   donde:
-./CONSENSO : Nombre del script
-DENV_1 : nombre del serotipo
-'/home/ics2/CONSENSO_D/DENV1_fastq_pass' : Dirección exacta de la carpeta "DENV1_fastq_pass" que contiene los archivos fastq de dengue 1
+  
+   ./CONSENSO : Nombre del script
+   
+   DENV_1 : nombre del serotipo
+   
+   '/home/ics2/CONSENSO_D/DENV1_fastq_pass' : Dirección exacta de la carpeta "DENV1_fastq_pass" que contiene los archivos fastq de dengue 1
 
 
 *---------------------------------* 
@@ -68,7 +71,9 @@ Ejemplo
 ```
       
  Donde
+ 
    ./contarX: nombre del script
+   
    '/home/ics2/CONSENSO_D/ALL_CONSENSUS.fasta': dirección exacta del archivo fasta 
    
    
@@ -101,8 +106,12 @@ Ejemplo
 ```
 
   donde
+  
  ./RENOMBRAR: Nombre del script
+ 
  '/home/ics2/mi_carpeta/nombres.txt': Ubicación exacta del archivo de texto que contiene los nombres antiguos y nuevos
+ 
  '/home/ics2/mi_carpeta/viejos_nombres.fasta': Ubicación exacta del archivo fasta que contiene las secuencias con los viejos nombres
+ 
   > /home/ics2/mi_carpeta/nuevo.fasta': Ubicación excta y nommbre del archivo que contendrá los archivos fasta renombrados. En este caso, el archivo se guardará en la la carpeta home, ics2, mi_carpeta, con el nombre "nuevo.fasta". Es importante guardarlo siempre con la extención ".fasta"
  
