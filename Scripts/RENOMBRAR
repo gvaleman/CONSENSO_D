@@ -1,0 +1,10 @@
+#!/bin/bash
+awk '
+FNR==NR {f2[$1]=$2;next}
+/^>/ {
+  for (i in f2) {
+    if (index(substr($1,2), i)) {
+      print ">"f2[i]; next
+    }
+  }
+}1' $1 $2

@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# Obtener la ruta del directorio actual
+current_dir=$PWD
+
+# Obtener la ruta del archivo fasta relativa al directorio actual
+fasta_file="$current_dir/CONSENSO_D/Ref_DENV/Reference_DV_1.fasta"
+
+dir=$1
+touch -c "$dir"/*
+cd "$dir"
+
+for file in $(ls -d */)
+do
+	cd $file
+		#Mensajes a quien va a instalar
+	printf '%s\n' "Descomprimiendo..."
+	nombre=${PWD##*/}
+	cat $(ls *.gz) > "${nombre}.fastq.gz"
+	tar="${nombre}.fastq.gz"
+	gzip -d $tar
+	printf '%s\n' "Descompresión realizada con éxito"
+	printf '%s\n' "Iniciando Proceso de ensamblaje"
+	printf '%s\n' "...."
+	printf '%s\n' "........"
+	printf '%s\n' ".............."
+	printf '%s\n' "........................"
+	printf '%s\n' "El proceso ha iniciado"
+		#Definiendo el nombre de la carpeta como mi variable nombre
+	muestra=$(ls *.fastq) 
+		#Programas
+	printf '%s\n' "Mapeando contra referencia..."
+	minimap2 -a $fasta_file $muestra > Output.aln.sam
+	samtools view -S -b Output.aln.sam > Output.aln.bam
+	samtools sort Output.aln.bam -o Output.sorted.bam
+	samtools index Output.sorted.bam
+	printf '%s\n' "::::::::::CREANDO SECUENCIA CONSENSO::::::::::::"
+	samtools mpileup -uf $fasta_file Output.sorted.bam | bcftools call -c | vcfutils.pl vcf2fq > SAMPLE_cns.fastq
+	seqtk seq -aQ64 -q20 -n N SAMPLE_cns.fastq > SAMPLE_cns.fasta
+	echo ">${nombre}" > "${nombre}.fasta"
+	nombre2="${nombre}.fasta"
+	tail -n +2 SAMPLE_cns.fasta >> $nombre2
+	rm SAMPLE_cns.fasta
+	printf '%s\n' "::::::::::PROCESO TERMINADO::::::::::::"
+	cd ..
+	rm $(ls *.gz)  #No remueve los .gz. el comando debe estar dentro de la carpeta
+done
+cat $(find -name *.fasta) > all_consensus_D1.fasta
+echo TAREA REALIZADA CON ÉXITO
+

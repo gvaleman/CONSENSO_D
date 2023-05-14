@@ -1,0 +1,17 @@
+#!/bin/bash
+
+awk -v char=N '
+    /^>/ {
+        if (label != "") {
+            print label, gsub(char, "", sequence)
+            sequence = ""
+        }
+        label = $1
+        next 
+    }
+    { sequence = sequence $0 }
+    END {
+        if (label != "")
+            print label, gsub(char, "", sequence)
+    }
+' "$1"

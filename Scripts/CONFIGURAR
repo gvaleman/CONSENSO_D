@@ -1,0 +1,37 @@
+#!/bin/bash
+cd Scripts
+cp CONSENSO ~/.
+cp contarX ~/.
+cp RENOMBRAR ~/.
+cd
+chmod +x CONSENSO
+chmod +x contarX
+chmod +x RENOMBRAR
+
+echo "CONSENSO es un script diseñado para mapear, ensamblar y generar una secuencia consenso de los 4 serotipos de Dengue a partir de archivos fastq de secuenciadores NANOPORE.
+CONSENSO automatiza el paso a paso del proceso para la generación de una secuencia consenso.
+"
+
+
+echo " *CONSIDERACIONES:
+echo "Para utilizar CONSENSO se deben tener instalados los siguientes programas:
+		- minimap2
+		- samtools
+		- seqtk
+		- bcftools  
+		
+		"
+echo " *Instrucciones:
+- seleccionar las carpetas de los barcode de serotipo que desea ensamblar y guardarlas en un directorio de trabajo
+- Abrir una terminal, haciendo click sobre el icono de la terminal o con la combinacion de teclas CTRL+ALT+T
+- En la terminal es ./CONSENSO seguido del serotipo a ensamblar (DENV_1, DENV_2, DENV_3 o DENV_4)
+- Arrastrar el directorio de trabajo que contiene las carpetas con los archivos fastq
+- presionar ENTER y esperar que el proceso de ensamblaje termine
+
+"
+
+echo " Para mas información sobre como usar CONSENSO revisar el archivo CONSENSO_INSTRUCCIONES en la carpeta CONSENSO_D"
+		
+echo " *----------------------------------------------*
+       *--   "CONSENSO" ESTA LISTO PARA TRABAJAR"   --*
+       *----------------------------------------------*"

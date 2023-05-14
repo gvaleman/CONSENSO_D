@@ -1,0 +1,72 @@
+#!/bin/bash
+if
+cd Scripts
+cp CONSENSO ~/.
+cp contarX ~/.
+cp RENOMBRAR ~/.
+cd
+chmod +x CONSENSO
+chmod +x contarX
+chmod +x RENOMBRAR
+then
+
+echo "Preparando todo..."
+sleep 2
+echo "Se configurarán 3 scripts:
+	CONSENSO: para generar una secuencia consenso
+	contarX: para contar el numero de gaps en una o mas secuencias consensos
+	RENOMBRAR: para renombrar un los nombres de las secuencias en un archivo multifasta
+	"
+sleep 5
+echo "..   10%" 
+sleep 1.4
+echo "....   18%"
+sleep 1.4
+echo "........   50%"
+sleep 1.4
+echo "..........   80%"
+sleep 1.4
+
+echo "*---------------------------------* 100%
+
+"
+sleep 3
+echo "CONSENSO es un script diseñado para mapear, ensamblar y generar una secuencia consenso de los 4 serotipos de Dengue a partir de archivos fastq de secuenciadores NANOPORE.
+CONSENSO automatiza el paso a paso del proceso para la generación de una secuencia consenso.
+
+"
+sleep 1
+
+echo " *CONSIDERACIONES: "
+echo "Para utilizar CONSENSO se deben tener instalados los siguientes programas:
+		- minimap2
+		- samtools
+		- seqtk
+		- bcftools  
+		
+		"
+		sleep 1
+echo " *Instrucciones:
+- seleccionar las carpetas de los barcode de serotipo que desea ensamblar y guardarlas en un directorio de trabajo
+- Abrir una terminal, haciendo click sobre el icono de la terminal o con la combinacion de teclas CTRL+ALT+T
+- En la terminal es ./CONSENSO seguido del serotipo a ensamblar (DENV_1, DENV_2, DENV_3 o DENV_4)
+- Arrastrar el directorio de trabajo que contiene las carpetas con los archivos fastq
+- presionar ENTER y esperar que el proceso de ensamblaje termine
+"
+sleep 1
+
+echo " Para mas información sobre como usar CONSENSO revisar el archivo LEEME en la carpeta CONSENSO_D"
+sleep 3
+echo "
+
+       *----------------------------------------------*
+       *--         Configuración exitosa            --*
+       *--    CONSENSO ESTA LISTO PARA TRABAJAR     --*
+       *----------------------------------------------*"
+echo "
+
+"
+else
+
+echo "Hubo un error. Comunicarse con GERALD"
+fi

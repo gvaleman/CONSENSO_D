@@ -1,0 +1,7 @@
+Configurando los scripts
+
+En la terminal ejecutar los siguientes comandos
+
+cd CONSENSO_D
+chmod +x CONFIGURAR
+./CONFIGURAR
