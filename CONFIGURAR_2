@@ -1,0 +1,79 @@
+#!/bin/bash
+
+# Detectar si estamos en WSL
+if grep -qEi "(Microsoft|WSL)" /proc/version &> /dev/null ; then
+    echo "Detectado WSL"
+    HOME_DIR=~/ubuntu
+else
+    echo "Detectado Ubuntu"
+    HOME_DIR=~
+fi
+
+# Clona el repositorio desde GitHub
+git clone https://github.com/tu-usuario/repositorio.git
+
+# Navega a la carpeta Scripts
+cd repositorio/Scripts
+
+# Copia los scripts a la carpeta raíz correspondiente
+cp CONSENSO "$HOME_DIR"
+cp contarX "$HOME_DIR"
+cp RENOMBRAR "$HOME_DIR"
+
+# Navega a la carpeta raíz del usuario
+cd "$HOME_DIR"
+
+# Otorga permisos de ejecución a los scripts
+chmod +x CONSENSO
+chmod +x contarX
+chmod +x RENOMBRAR
+
+# Mensajes informativos sobre la configuración
+echo "Preparando todo..."
+sleep 2
+echo "Se configurarán 3 scripts:
+    CONSENSO: para generar una secuencia consenso.
+    contarX: para contar el número de gaps en una o más secuencias consenso.
+    RENOMBRAR: para renombrar los nombres de las secuencias en un archivo multifasta.
+    "
+sleep 5
+echo "..   10%" 
+sleep 1.4
+echo "....   18%"
+sleep 1.4
+echo "........   50%"
+sleep 1.4
+echo "..........   80%"
+sleep 1.4
+echo "*---------------------------------* 100%
+"
+sleep 3
+echo "CONSENSO es un script diseñado para mapear, ensamblar y generar una secuencia consenso de los 4 serotipos de Dengue a partir de archivos fastq de secuenciadores NANOPORE.
+CONSENSO automatiza el paso a paso del proceso para la generación de una secuencia consenso.
+"
+sleep 1
+echo " *CONSIDERACIONES: "
+echo "Para utilizar CONSENSO se deben tener instalados los siguientes programas:
+    - minimap2
+    - samtools
+    - seqtk
+    - bcftools  
+    "
+sleep 1
+echo " *Instrucciones:
+- Seleccionar las carpetas de los barcode de serotipo que desea ensamblar y guardarlas en un directorio de trabajo.
+- Abrir una terminal, haciendo click sobre el icono de la terminal o con la combinación de teclas CTRL+ALT+T.
+- En la terminal, ejecutar ./CONSENSO seguido del serotipo a ensamblar (DENV_1, DENV_2, DENV_3 o DENV_4).
+- Arrastrar el directorio de trabajo que contiene las carpetas con los archivos fastq.
+- Presionar ENTER y esperar que el proceso de ensamblaje termine.
+"
+sleep 1
+echo " Para más información sobre cómo usar CONSENSO, revisar el archivo LEEME en la carpeta CONSENSO_D"
+sleep 3
+echo "
+       *----------------------------------------------*
+       *--         Configuración exitosa            --*
+       *--    CONSENSO ESTÁ LISTO PARA TRABAJAR     --*
+       *----------------------------------------------*"
+echo "
+"
