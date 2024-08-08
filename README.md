@@ -15,6 +15,7 @@ Configurando los scripts
 
 En la terminal ejecutar el siguientes comando
 ```
+cd
 git clone https://github.com/gvaleman/CONSENSO_D.git
 ```
 para la configuración de los scripts, escribir en la terminal
