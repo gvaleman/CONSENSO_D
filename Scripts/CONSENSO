@@ -15,14 +15,17 @@ elif [ "$serotype" == "DENV_3" ]; then
     fasta_file="$current_dir/CONSENSO_D/Ref_DENV/Reference_DV_3.fasta"
 elif [ "$serotype" == "DENV_4" ]; then
     fasta_file="$current_dir/CONSENSO_D/Ref_DENV/Reference_DV_4.fasta"
+elif [ "$serotype" == "RABV" ]; then
+    fasta_file="$current_dir/CONSENSO_D/Ref_DENV/RABV_Reference.fasta"
 else
-    echo "Error: serotipo no válido"
+    echo "Error: serotipo / Virus no válido"
     echo "
     Intentar con las opciones
               DENV_1
               DENV_2
               DENV_3
-              DENV_4"
+              DENV_4
+              RABV "
     exit 1
 fi
 
@@ -79,6 +82,7 @@ do
 	samtools view -S -b Output.aln.sam > Output.aln.bam
 	samtools sort Output.aln.bam -o Output.sorted.bam
 	samtools index Output.sorted.bam
+        samtools depth Output.sorted.bam > "$(basename "$(dirname "$(realpath Output.sorted.bam)")").coverage"
 	printf '%s\n' "::::::::::CREANDO SECUENCIA CONSENSO::::::::::::"
 	samtools mpileup -uf $fasta_file Output.sorted.bam | bcftools call -c | vcfutils.pl vcf2fq > SAMPLE_cns.fastq
 	seqtk seq -aQ64 -q20 -n N SAMPLE_cns.fastq > SAMPLE_cns.fasta
