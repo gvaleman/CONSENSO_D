@@ -1,0 +1,167 @@
+#!/bin/bash
+
+# Obtener el serotipo a ensamblar y la ruta de la secuencia de referencia
+serotype=$1
+
+# Obtener la ruta del directorio actual
+current_dir=$PWD
+
+# Definir la secuencia de referencia según el serotipo especificado
+if [ "$serotype" == "DENV_1" ]; then
+    fasta_file="$current_dir/CONSENSO_D/Ref_DENV/Reference_DV_1.fasta"
+elif [ "$serotype" == "DENV_2" ]; then
+    fasta_file="$current_dir/CONSENSO_D/Ref_DENV/Reference_DV_2.fasta"
+elif [ "$serotype" == "DENV_3" ]; then
+    fasta_file="$current_dir/CONSENSO_D/Ref_DENV/Reference_DV_3.fasta"
+elif [ "$serotype" == "DENV_4" ]; then
+    fasta_file="$current_dir/CONSENSO_D/Ref_DENV/Reference_DV_4.fasta"
+elif [ "$serotype" == "RABV" ]; then
+    fasta_file="$current_dir/CONSENSO_D/Ref_DENV/RABV_Reference.fasta"
+else
+    echo "Error: serotipo / Virus no válido"
+    echo "
+    Intentar con las opciones
+              DENV_1
+              DENV_2
+              DENV_3
+              DENV_4
+              RABV "
+    exit 1
+fi
+
+echo "--*--*--*--*--*--*--*--*--*--*--*--*--*---"
+sleep 0.3
+echo "--                                      --"
+sleep 0.3
+echo "--                                      --"
+sleep 0.3
+echo "--             ENSAMBLANDO              --"
+sleep 0.3
+echo "--                                      --"
+sleep 0.3
+echo "--               $serotype                 --"
+sleep 0.3
+echo "--                                      --"
+sleep 0.3
+echo "--                                      --"
+sleep 0.3
+echo "--*--*--*--*--*--*--*--*--*--*--*--*--*---"
+sleep 1
+echo "--  Instituto De ciencias Sostenibles   --"
+sleep 0.1
+echo "------------------------------------------"
+
+dir=$2
+touch -c "$dir"/*
+cd "$dir"
+
+for file in $(ls -d */)
+do
+    cd $file
+    nombre=${PWD##*/}
+    
+    # Verificar si hay archivos fastq.gz en la carpeta
+    if ls *.fastq.gz 1> /dev/null 2>&1; then
+    
+    
+        # Mensajes a quien va a instalar
+        
+            printf '%s\n' " "
+    printf '%s\n' " "
+    printf '%s\n' "-----------------------------------------------------"
+             echo "                $(basename "$file")                  "
+    printf '%s\n' "          Iniciando Proceso de ensamblaje            "
+    printf '%s\n' "-----------------------------------------------------"
+    printf '%s\n' " "
+    
+    
+        printf '%s\n' "Descomprimiendo..."
+        cat $(ls *.fastq.gz) > "${nombre}.fastq.gz"
+        tar="${nombre}.fastq.gz"
+        gzip -df $tar  # Use the `-d` option to decompress and `-f` to force overwrite
+        printf '%s\n' "Descompresión realizada con éxito"
+        muestra=$(ls *.fastq)
+    elif ls *.fastq 1> /dev/null 2>&1; then
+        echo "----------------------------------------------------------------------------"
+        echo "⚠  Archivos .fastq ya descomprimidos en la carpeta \"$(basename "$file")\". Continuando y sobrescribiendo...  ⚠"
+        echo "----------------------------------------------------------------------------"
+        muestra=$(ls *.fastq)
+    else
+        printf '%s\n' " "
+    printf '%s\n' "-----------------------------------------------------"
+             echo "                $(basename "$file")                  "
+    printf '%s\n' "                                                     "
+    printf '%s\n' "-----------------------------------------------------"
+    printf '%s\n' " "
+         echo "  "
+        echo "⚠  No se encontraron archivos fastq.gz ni .fastq en la carpeta \"$(basename "$file")\"  ⚠"
+        echo "  "
+        cd ..
+        continue
+    fi
+    
+
+
+
+    
+    # Programas
+    printf '%s\n' "  "
+    printf '%s\n' "      Mapeando contra referencia...      "
+    minimap2 -a $fasta_file $muestra > Output.aln.sam
+    samtools view -S -b Output.aln.sam > Output.aln.bam
+    samtools sort Output.aln.bam -o Output.sorted.bam
+    samtools index Output.sorted.bam
+
+    # Verificación de calidad del mapeo
+     printf '%s\n' "     "
+     printf '%s\n' "Verificando calidad del mapeo..."
+      printf '%s\n' "Verificando calidad del mapeo..."
+    printf '%s\n' "Verificando calidad del mapeo..."
+    samtools flagstat Output.sorted.bam > "$(basename "$file").flagstat"
+    samtools stats Output.sorted.bam > "$(basename "$file").stats"
+    plot-bamstats -p "$(basename "$file")_plots/" "$(basename "$file").stats"
+
+    # Generar archivo de cobertura
+    samtools depth Output.sorted.bam > "$(basename "$(dirname "$(realpath Output.sorted.bam)")").coverage"
+
+     printf '%s\n' "     "
+     printf '%s\n' "::::::::::CREANDO SECUENCIA CONSENSO::::::::::::"
+    # Generar archivo VCF y secuencia consenso
+    bcftools mpileup -Ou -f $fasta_file Output.sorted.bam | bcftools call -c -Oz -o calls.vcf.gz
+    bcftools norm -f $fasta_file calls.vcf.gz -Oz -o normalized.vcf.gz
+    bcftools view -i 'QUAL>20' normalized.vcf.gz | vcfutils.pl vcf2fq > SAMPLE_cns.fastq
+    seqtk seq -aQ64 -q20 -n N SAMPLE_cns.fastq > SAMPLE_cns.fasta
+    echo ">${nombre}" > "${nombre}.fasta"
+    nombre2="${nombre}.fasta"
+    tail -n +2 SAMPLE_cns.fasta >> $nombre2
+    rm SAMPLE_cns.fasta
+    
+     printf '%s\n' "     "
+    printf '%s\n' "           PROCESO TERMINADO            "
+     printf '%s\n' "     "
+    cd ..
+    #rm $(ls *.gz)  # No remueve los .gz. el comando debe estar dentro de la carpeta
+done
+ printf '%s\n' "     "
+  printf '%s\n' "     "
+cat $(find -name *.fasta) > "all_consensus_$serotype.fasta"
+echo "	 ____  ____   ___     __    ___  _____  ___                         
+	|    \|    \ /   \   /  ]  /  _]/ ___/ /   \                        
+	|  o  )  D  )     | /  /  /  [_(   \_ |     |                       
+	|   _/|    /|  O  |/  /  |    _]\__  ||  O  |                       
+	|  |  |    \|     /   \_ |   [_ /  \ ||     |                       
+	|  |  |  .  \     \     ||     |\    ||     |                       
+	|__|  |__|\_|\___/ \____||_____| \___| \___/                        
+                                                                    
+ _____  ____  ____    ____  _      ____  _____   ____  ___     ___  
+|     ||    ||    \  /    || |    |    ||     | /    ||   \   /   \ 
+|   __| |  | |  _  ||  o  || |     |  | |__/  ||  o  ||    \ |     |
+|  |_   |  | |  |  ||     || |___  |  | |   __||     ||  D  ||  O  |
+|   _]  |  | |  |  ||  _  ||     | |  | |  /  ||  _  ||     ||     |
+|  |    |  | |  |  ||  |  ||     | |  | |     ||  |  ||     ||     |
+|__|   |____||__|__||__|__||_____||____||_____||__|__||_____| \___/ 
+                                                                   
+"
+echo "Se ha generado un archivo multi-fasta llamado: "
+echo " -->    *all_consensus_$serotype.fasta*"
+echo " en la ubicación: $dir "
