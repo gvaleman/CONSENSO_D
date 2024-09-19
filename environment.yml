@@ -12,6 +12,7 @@ dependencies:
   - seqtk=1.4
   - mafft
   - raxml
+  - mariadb
   - tk           # tkinter se incluye a través del paquete `tk` de conda
   - pip
   - matplotlib
