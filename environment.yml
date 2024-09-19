@@ -1,0 +1,20 @@
+name: CONSENSO_D
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.11
+  - minimap2=2.26
+  - samtools=1.19.2
+  - bcftools=1.19
+  - perl
+  - seqtk=1.4
+  - tk           # tkinter se incluye a través del paquete `tk` de conda
+  - pip
+  - matplotlib
+  - pandas
+  - numpy
+  - seaborn
+  - pip:
+      - pillow

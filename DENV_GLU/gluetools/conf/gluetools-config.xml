@@ -1,0 +1,34 @@
+<gluetools>
+    <database>
+        <username>gluetools</username>
+        <password>glue12345</password>
+        <vendor>MySQL</vendor>
+        <jdbcUrl>jdbc:mysql://localhost:3306/GLUE_TOOLS?characterEncoding=UTF-8</jdbcUrl>
+    </database>
+    <properties>
+        <property>
+            <name>gluetools.core.programs.blast.blastn.executable</name>
+            <value>/home/ics2/CONSENSO_D/blast-2.2.31-pl526he19e7b1_5/bin/blastn</value>
+        </property>
+        <property>
+            <name>gluetools.core.programs.blast.tblastn.executable</name>
+            <value>/home/ics2/CONSENSO_D/blast-2.2.31-pl526he19e7b1_5/bin/tblastn</value>
+        </property>
+        <property>
+            <name>gluetools.core.programs.blast.makeblastdb.executable</name>
+            <value>/home/ics2/CONSENSO_D/blast-2.2.31-pl526he19e7b1_5/bin/makeblastdb</value>
+        </property>
+        <property>
+            <name>gluetools.core.programs.blast.temp.dir</name>
+            <value>/home/ics2/CONSENSO_D/DENV_GLU/gluetools/tmp/blastfiles</value>
+        </property>
+        <property>
+            <name>gluetools.core.programs.blast.db.dir</name>
+            <value>/home/ics2/CONSENSO_D/DENV_GLU/gluetools/tmp/blastdbs</value>
+        </property>
+        <property>
+            <name>gluetools.core.programs.blast.search.threads</name>
+            <value>4</value>
+        </property>
+    </properties>
+</gluetools>
