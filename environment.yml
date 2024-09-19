@@ -10,6 +10,8 @@ dependencies:
   - bcftools=1.19
   - perl
   - seqtk=1.4
+  - mafft
+  - raxml
   - tk           # tkinter se incluye a través del paquete `tk` de conda
   - pip
   - matplotlib

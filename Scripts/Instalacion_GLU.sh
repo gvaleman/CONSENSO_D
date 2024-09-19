@@ -8,9 +8,20 @@ MYSQL_USER="gluetools"
 MYSQL_PASSWORD="glue12345"
 MYSQL_DATABASE="GLUE_TOOLS"
 
-# Activar entorno Conda
-source ~/miniconda3/etc/profile.d/conda.sh
+# Inicializar conda
+eval "$(conda shell.bash hook)"
+
+# Crear el entorno conda si no existe
+if ! conda env list | grep -q $ENV_NAME; then
+    conda env create -f environment.yml
+fi
+
+# Activar el entorno conda
 conda activate $ENV_NAME
+
+# Obtener las rutas de MAFFT y RAxML
+MAFFT_DIR=$(which mafft)
+RAXML_DIR=$(which raxmlHPC)
 
 # Instalar MySQL si no está instalado
 if ! mysql --version; then
@@ -75,6 +86,32 @@ cat <<EOL > ${GLUE_HOME}/conf/gluetools-config.xml
             <name>gluetools.core.programs.blast.search.threads</name>
             <value>4</value>
         </property>
+        <!-- MAFFT-specific config -->
+        <property>
+            <name>gluetools.core.programs.mafft.executable</name>
+            <value>${MAFFT_DIR}</value>
+        </property>
+        <property>
+            <name>gluetools.core.programs.mafft.cpus</name>
+            <value>4</value>
+        </property>
+        <property>
+            <name>gluetools.core.programs.mafft.temp.dir</name>
+            <value>${GLUE_HOME}/tmp/mafftfiles</value>
+        </property>
+        <!-- RAxML-specific config -->
+        <property>
+            <name>gluetools.core.programs.raxml.raxmlhpc.executable</name>
+            <value>${RAXML_DIR}</value>
+        </property>
+        <property>
+            <name>gluetools.core.programs.raxml.raxmlhpc.cpus</name>
+            <value>4</value>
+        </property>
+        <property>
+            <name>gluetools.core.programs.raxml.temp.dir</name>
+            <value>${GLUE_HOME}/tmp/raxmlfiles</value>
+        </property>
     </properties>
 </gluetools>
 EOL
@@ -82,6 +119,8 @@ EOL
 # Crear directorios temporales
 mkdir -p ${GLUE_HOME}/tmp/blastfiles
 mkdir -p ${GLUE_HOME}/tmp/blastdbs
+mkdir -p ${GLUE_HOME}/tmp/mafftfiles
+mkdir -p ${GLUE_HOME}/tmp/raxmlfiles
 
 # Mensaje final
 echo "Instalación de GLUE completada con éxito. Ejecuta '${GLUE_HOME}/bin/gluetools.sh' para iniciar GLUE."
