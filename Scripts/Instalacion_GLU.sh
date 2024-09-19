@@ -23,19 +23,20 @@ conda activate $ENV_NAME
 MAFFT_DIR=$(which mafft)
 RAXML_DIR=$(which raxmlHPC)
 
-# Instalar MySQL si no está instalado
-if ! mysql --version; then
-    sudo apt-get update
-    sudo apt-get install -y mysql-server
-    sudo sed -i 's/^#socket/socket/' /etc/mysql/mysql.conf.d/mysqld.cnf
-    sudo sed -i 's/^#pid-file/pid-file/' /etc/mysql/mysql.conf.d/mysqld.cnf
-    sudo sed -i 's/^#port/port/' /etc/mysql/mysql.conf.d/mysqld.cnf
-    sudo service mysql restart
-    sleep 5
+# Instalar MySQL/MariaDB si no está instalado
+if ! command -v mariadb &> /dev/null; then
+    conda install -c conda-forge mariadb
 fi
 
-# Configurar MySQL
-sudo mysql <<EOF
+# Iniciar el servicio de MariaDB
+mariadb-install-db --user="$USER" --basedir="$(conda info --base)/envs/$ENV_NAME" --datadir="$(conda info --base)/envs/$ENV_NAME/var/lib/mysql"
+mysqld_safe --datadir="$(conda info --base)/envs/$ENV_NAME/var/lib/mysql" &
+
+# Esperar a que MariaDB se inicie
+sleep 10
+
+# Configurar MariaDB
+mariadb -u root <<EOF
 CREATE USER IF NOT EXISTS '$MYSQL_USER'@'localhost' IDENTIFIED BY '$MYSQL_PASSWORD';
 CREATE DATABASE IF NOT EXISTS $MYSQL_DATABASE CHARACTER SET UTF8;
 GRANT ALL PRIVILEGES ON $MYSQL_DATABASE.* TO '$MYSQL_USER'@'localhost';
@@ -43,7 +44,7 @@ FLUSH PRIVILEGES;
 EOF
 
 # Verificar conexión
-mysql -u $MYSQL_USER -p$MYSQL_PASSWORD -e "USE $MYSQL_DATABASE; SHOW TABLES;" --socket=/var/run/mysqld/mysqld.sock
+mariadb -u $MYSQL_USER -p$MYSQL_PASSWORD -e "USE $MYSQL_DATABASE; SHOW TABLES;"
 
 # Configuración de GLUE
 export GLUE_HOME=$GLUE_HOME
