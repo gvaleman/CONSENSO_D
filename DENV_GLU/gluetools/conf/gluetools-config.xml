@@ -30,5 +30,31 @@
             <name>gluetools.core.programs.blast.search.threads</name>
             <value>4</value>
         </property>
+        <!-- MAFFT-specific config -->
+        <property>
+            <name>gluetools.core.programs.mafft.executable</name>
+            <value>/usr/bin/mafft</value>
+        </property>
+        <property>
+            <name>gluetools.core.programs.mafft.cpus</name>
+            <value>4</value>
+        </property>
+        <property>
+            <name>gluetools.core.programs.mafft.temp.dir</name>
+            <value>/home/ics2/CONSENSO_D/DENV_GLU/gluetools/tmp/mafftfiles</value>
+        </property>
+        <!-- RAxML-specific config -->
+        <property>
+            <name>gluetools.core.programs.raxml.raxmlhpc.executable</name>
+            <value></value>
+        </property>
+        <property>
+            <name>gluetools.core.programs.raxml.raxmlhpc.cpus</name>
+            <value>4</value>
+        </property>
+        <property>
+            <name>gluetools.core.programs.raxml.temp.dir</name>
+            <value>/home/ics2/CONSENSO_D/DENV_GLU/gluetools/tmp/raxmlfiles</value>
+        </property>
     </properties>
 </gluetools>

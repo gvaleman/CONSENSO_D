@@ -7,6 +7,7 @@ BLAST_DIR="$HOME/CONSENSO_D/blast-2.2.31-pl526he19e7b1_5"
 MYSQL_USER="gluetools"
 MYSQL_PASSWORD="glue12345"
 MYSQL_DATABASE="GLUE_TOOLS"
+SQL_FILE_PATH="$HOME/CONSENSO_D/dengue_glue.sql" # Asegúrate de ajustar el path a donde está tu archivo dengue_glue.sql
 
 # Inicializar conda
 eval "$(conda shell.bash hook)"
@@ -60,6 +61,14 @@ fi
 
 # Verificar conexión a MariaDB
 mariadb -u $MYSQL_USER -p$MYSQL_PASSWORD -e "USE $MYSQL_DATABASE; SHOW TABLES;"
+
+# Inicializar la base de datos con el archivo SQL si no se ha hecho
+if ! mariadb -u $MYSQL_USER -p$MYSQL_PASSWORD -e "USE $MYSQL_DATABASE; SHOW TABLES;" | grep -q 'some_table_name'; then
+    echo "Inicializando la base de datos con dengue_glue.sql..."
+    mariadb -u $MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE < $SQL_FILE_PATH
+else
+    echo "La base de datos ya está inicializada."
+fi
 
 # Configuración de GLUE
 export GLUE_HOME=$GLUE_HOME

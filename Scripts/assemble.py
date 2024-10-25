@@ -12,7 +12,7 @@ def ensamblar(serotype, path, tec_seq=None, seq_ref=None, primers=None, data=Non
         print(f"Datos adicionales: {data}")
 
     try:
-        # Reemplaza este comando con la lógica de ensamblaje real
+        # Pipelie ensamblaje
         subprocess.run(["echo", f"Ensamblando {serotype} en {path} con {tec_seq}, {seq_ref}, {primers}, {data}"], check=True)
     except subprocess.CalledProcessError as e:
         print(f"Error durante la ejecución del comando: {e}")

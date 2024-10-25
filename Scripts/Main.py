@@ -1,10 +1,10 @@
 import sys
 from args_parser import parsear_argumentos
 from menu_consenso import main as mostrar_menu
-from assemble import ensamblar
+#from assemble import ensamblar
 
 def main():
-    args = parsear_argumentos()  # Parseamos los argumentos
+    args = parsear_argumentos()  
 
     if len(sys.argv) == 1:
         # No se proporcionaron argumentos, mostrar el menú
@@ -15,7 +15,7 @@ def main():
         elif args.menu:
             args = manejar_menu(args)
         
-        # Verifica si hay información suficiente para ejecutar el ensamblaje
+        # VerificaR si hay información suficiente para ejecutar el ensamblaje
         if args.virus and args.path:
             ensamblar(args.virus, args.path, args.tec_seq, args.seq_ref, args.primers, args.data)
         else:
