@@ -28,7 +28,9 @@ def main_menu():
    |  3. Usar CONSENSO_D en GUI               |
    |       (Use CONSENSO_D in GUI)            |
    |                                          |
-   |  4. Salir  / Exit                        |
+   |  4. Determinar Linaje con GLU CLI        |
+   |                                          |
+   |  5. Salir  / Exit                        |
    |                                          |
 =================================================""")
     
@@ -72,7 +74,7 @@ def use_gui():
 
 
 def guided_console():
-    viruses = ["DENV_1", "DENV_2", "DENV_3", "DENV_4", "RABV"]
+    viruses = ["DENV_1", "DENV_2", "DENV_3", "DENV_4", "SARS_COV_2", "RABV"]
 
     print("\n¿Qué virus desea ensamblar?")
     print("(Which virus do you want to assemble?)")
@@ -101,6 +103,35 @@ def guided_console():
 
     os.system(command)
 
+
+def GLUE_lineage():
+    viruses = ["DENV_1", "DENV_2", "DENV_3", "DENV_4"]
+
+    print("\n¿Qué serotipo desea analizar?")
+    print("(Which serotype do you want to analyze?)")
+    print("(DENV_1, DENV_2, DENV_3, DENV_4)")
+    
+    virus_choice = input("Ingrese el serotipo (enter the serotype): ").upper().strip()
+    if virus_choice not in viruses:
+        print("*************************************************")
+        print("* Serotipo inválido, por favor intente de nuevo! *")
+        print("*    Invalid serotype, please try again!        *")
+        print("*************************************************")
+        return
+
+    path = input("\nArrastre el archivo fasta de sus secuencias: ")
+    
+    if not os.path.exists(path):
+        print("El archivo especificado no existe. (The specified file does not exist.)")
+        return
+
+    output_dir = os.path.dirname(path)  # Usa el mismo directorio del archivo de entrada
+    command = f"bash '/home/ics2/CONSENSO_D/Scripts/GLUE_lineage.sh' \"{path}\" \"{output_dir}\" \"{virus_choice}\""
+    print("\nEjecutando el siguiente comando:")
+    print(f"(Running the following command:)\n{command}")
+
+    os.system(command)
+
 def exit_program():
     print("***********************************************")
     print("*          Saliendo de CONSENSO_D...          *")
@@ -118,7 +149,7 @@ def main():
 
     while True:
         main_menu()
-        choice = input("Ingrese su elección (1-4) / Enter your choice (1-4): ")
+        choice = input("Ingrese su elección (1-5) / Enter your choice (1-5): ")
 
         if choice == '1':
             use_console()
@@ -127,6 +158,8 @@ def main():
         elif choice == '3':
             use_gui()
         elif choice == '4':
+            GLUE_lineage()
+        elif choice == '5':
             exit_program()
         else:
             invalid_choice()

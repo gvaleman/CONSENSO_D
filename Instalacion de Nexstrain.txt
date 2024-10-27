@@ -1,0 +1,234 @@
+Instalacion de Nexstrain Dengue
+
+Una vez clonado el repo
+
+cd repo
+nextstrain build ingest data/sequences.ndjson
+nextstrain build ingest
+nextstrain build nextclade
+cd phylogenetic
+nextstrain build .
+
+
+
+
+
+
+Gerald Vasquez
+Gerald3 min ago
+Pero basado en los instructivos del repo en gituhub.. que debo hacer ahora?
+Lo 
+Te muestro lo que contienen los readme de los subdirectorios especificados en el directorio principal
+
+Nextstrain repository for dengue virus
+
+This repository contains two workflows for the analysis of dengue virus data:
+
+    ingest/ - Download data from GenBank, clean and curate it and upload it to S3
+    phylogenetic/ - Make phylogenetic trees for nextstrain.org
+    nextclade/ - Make Nextclade datasets for nextstrain/nextclade_data
+
+Each folder contains a README.md with more information.
+
+
+
+nextstrain.org/dengue/ingest
+
+This is the ingest pipeline for dengue virus sequences.
+Software requirements
+
+Follow the standard installation instructions for Nextstrain's suite of software tools.
+Usage
+
+All workflows are expected to the be run from the top level pathogen repo directory. The default ingest workflow should be run with
+
+Fetch sequences with
+
+nextstrain build ingest data/sequences.ndjson
+
+Run the complete ingest pipeline with
+
+nextstrain build ingest
+
+This will produce 10 files (within the ingest directory):
+
+A pair of files with all the dengue sequences:
+
+    ingest/results/metadata_all.tsv
+    ingest/results/sequences_all.fasta
+
+A pair of files for each dengue serotype (denv1 - denv4)
+
+    ingest/results/metadata_denv1.tsv
+    ingest/results/sequences_denv1.fasta
+    ingest/results/metadata_denv2.tsv
+    ingest/results/sequences_denv2.fasta
+    ingest/results/metadata_denv3.tsv
+    ingest/results/sequences_denv3.fasta
+    ingest/results/metadata_denv4.tsv
+    ingest/results/sequences_denv4.fasta
+
+Run the complete ingest pipeline and upload results to AWS S3 with
+
+nextstrain build \
+    --env AWS_ACCESS_KEY_ID \
+    --env AWS_SECRET_ACCESS_KEY \
+    ingest \
+        upload_all \
+        --configfile build-configs/nextstrain-automation/config.yaml
+
+Adding new sequences not from GenBank
+Static Files
+
+Do the following to include sequences from static FASTA files.
+
+    Convert the FASTA files to NDJSON files with:
+
+    ./ingest/scripts/fasta-to-ndjson \
+        --fasta {path-to-fasta-file} \
+        --fields {fasta-header-field-names} \
+        --separator {field-separator-in-header} \
+        --exclude {fields-to-exclude-in-output} \
+        > ingest/data/{file-name}.ndjson
+
+Add the following to the .gitignore to allow the file to be included in the repo:
+
+!ingest/data/{file-name}.ndjson
+
+    Add the file-name (without the .ndjson extension) as a source to ingest/defaults/config.yaml. This will tell the ingest pipeline to concatenate the records to the GenBank sequences and run them through the same transform pipeline.
+
+Configuration
+
+Configuration takes place in defaults/config.yaml by default. Optional configs for uploading files are in build-configs/nextstrain-automation/config.yaml.
+Environment Variables
+
+The complete ingest pipeline with AWS S3 uploads uses the following environment variables:
+Required
+
+    AWS_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY
+
+Optional
+
+These are optional environment variables used in our automated pipeline.
+
+    GITHUB_RUN_ID - provided via github.run_id in a GitHub Action workflow
+    AWS_BATCH_JOB_ID - provided via AWS Batch Job environment variables
+
+Input data
+GenBank data
+
+GenBank sequences and metadata are fetched via NCBI datasets.
+ingest/vendored
+
+This repository uses git subrepo to manage copies of ingest scripts in ingest/vendored, from nextstrain/ingest.
+
+See vendored/README.md for instructions on how to update the vendored scripts.
+
+
+
+Nextclade
+
+Previously, all "official" Nextclade workflows lived in a central GitHub repository. The new standard would be to include the Nextclade workflow within the pathogen repo.
+
+This workflow is used to create the Nextclade datasets for this pathogen. All official Nextclade datasets are available at https://github.com/nextstrain/nextclade_data.
+Workflow Usage
+
+The workflow can be run from the top level pathogen repo directory:
+
+nextstrain build nextclade
+
+Alternatively, the workflow can also be run from within the nextclade directory:
+
+cd nextclade
+nextstrain build .
+
+This produces the default outputs of the nextclade workflow:
+
+    nextclade_dataset(s) = datasets/<build_name>/*
+
+Defaults
+
+The defaults directory contains all of the default configurations for the Nextclade workflow.
+
+defaults/config.yaml contains all of the default configuration parameters used for the Nextclade workflow. Use Snakemake's --configfile/--config options to override these default values.
+Snakefile and rules
+
+The rules directory contains separate Snakefiles (*.smk) as modules of the core Nextclade workflow. The modules of the workflow are in separate files to keep the main nextclade Snakefile succinct and organized.
+
+The workdir is hardcoded to be the nextclade directory so all filepaths for inputs/outputs should be relative to the nextclade directory.
+
+Modules are all included in the main Snakefile in the order that they are expected to run.
+Build configs
+
+The build-configs directory contains custom configs and rules that override and/or extend the default workflow.
+
+    test-dataset - build to test new Nextclade dataset
+
+
+
+nextstrain.org/dengue
+
+This is the Nextstrain build for dengue. Output from this build is visible at nextstrain.org/dengue.
+Software requirements
+
+Follow the standard installation instructions for Nextstrain's suite of software tools.
+Usage
+
+If you're unfamiliar with Nextstrain builds, you may want to follow our Running a Pathogen Workflow guide first and then come back here.
+
+The easiest way to run this pathogen build is using the Nextstrain command-line tool:
+
+nextstrain build .
+
+Build output goes into the directories data/, results/ and auspice/.
+
+Once you've run the build, you can view the results in auspice:
+
+nextstrain view auspice/
+
+Configuration
+
+Configuration for the workflow takes place entirely within the defaults/config_dengue.ymal. The analysis pipeline is contained in Snakefile with included rules. Each rule specifies its file inputs and output and pulls its parameters from the config. There is little redirection and each rule should be able to be reasoned with on its own.
+Using GenBank data
+
+This build starts by pulling preprocessed sequence and metadata files from:
+
+    https://data.nextstrain.org/files/workflows/dengue/sequences_all.fasta.zst
+    https://data.nextstrain.org/files/workflows/dengue/metadata_all.tsv.zst
+    https://data.nextstrain.org/files/workflows/dengue/sequences_denv1.fasta.zst
+    https://data.nextstrain.org/files/workflows/dengue/metadata_denv1.tsv.zst
+    https://data.nextstrain.org/files/workflows/dengue/sequences_denv2.fasta.zst
+    https://data.nextstrain.org/files/workflows/dengue/metadata_denv2.tsv.zst
+    https://data.nextstrain.org/files/workflows/dengue/sequences_denv3.fasta.zst
+    https://data.nextstrain.org/files/workflows/dengue/metadata_denv3.tsv.zst
+    https://data.nextstrain.org/files/workflows/dengue/sequences_denv4.fasta.zst
+    https://data.nextstrain.org/files/workflows/dengue/metadata_denv4.tsv.zst
+
+The above datasets have been preprocessed and cleaned from GenBank and are updated at regular intervals.
+Using example data
+
+Alternatively, you can run the build using the example data provided in this repository. Before running the build, copy the example sequences into the data/ directory like so:
+
+nextstrain build .  --configfile profiles/ci/profiles_config.yaml
+
+AWS
+
+With access to AWS, this can be more quickly run as:
+
+nextstrain build --aws-batch --aws-batch-cpus 4 --aws-batch-memory 7200 . --jobs 4
+
+Deploying build
+
+To run the workflow and automatically deploy the build to nextstrain.org, you will need to have AWS credentials to run the following:
+
+nextstrain build \
+    --env AWS_ACCESS_KEY_ID \
+    --env AWS_SECRET_ACCESS_KEY \
+    . \
+        deploy_all \
+        --configfile build-configs/nextstrain-automation/config.yaml
+
+
+
+Recuerda que no quiero usar nada mas lineas de comando

@@ -46,28 +46,68 @@ else
     echo "El servicio de MariaDB ya está en ejecución."
 fi
 
-# Configurar MariaDB si no lo está
-if ! mariadb -u $MYSQL_USER -p$MYSQL_PASSWORD -e "USE $MYSQL_DATABASE;" &> /dev/null; then
-    echo "Configurando MariaDB..."
-    mariadb -u root <<EOF
+# Verificar/Instalar MariaDB en el entorno conda
+if ! conda list | grep -q "mariadb"; then
+    echo "Instalando MariaDB en el entorno conda $ENV_NAME..."
+    conda install -c conda-forge mariadb-connector-c mariadb -y
+    if [ $? -ne 0 ]; then
+        echo "Error: No se pudo instalar MariaDB"
+        exit 1
+    fi
+fi
+
+# Asegurarse de que los binarios de MariaDB estén en el PATH
+export PATH="$(conda info --base)/envs/$ENV_NAME/bin:$PATH"
+
+# Definir el directorio de datos
+DB_DIR="$(conda info --base)/envs/$ENV_NAME/var/lib/mysql"
+mkdir -p "$DB_DIR"
+
+# Verificar si el servicio de MariaDB está corriendo
+if ! pgrep mysqld &> /dev/null; then
+    echo "Iniciando el servicio de MariaDB..."
+    
+    # Inicializar la base de datos si no está inicializada
+    if [ ! -f "$DB_DIR/ibdata1" ]; then
+        echo "Inicializando la base de datos MariaDB..."
+        mysql_install_db --datadir="$DB_DIR" --auth-root-authentication-method=normal
+        if [ $? -ne 0 ]; then
+            echo "Error: No se pudo inicializar la base de datos"
+            exit 1
+        fi
+    fi
+
+    # Iniciar el servidor MariaDB
+    mysqld_safe --datadir="$DB_DIR" --skip-grant-tables &
+    
+    # Esperar a que el servidor esté disponible
+    echo "Esperando a que el servidor MariaDB esté disponible..."
+    sleep 10
+    
+    # Asegurar la instalación
+    mysql -u root <<EOF
+FLUSH PRIVILEGES;
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'root';
 CREATE USER IF NOT EXISTS '$MYSQL_USER'@'localhost' IDENTIFIED BY '$MYSQL_PASSWORD';
 CREATE DATABASE IF NOT EXISTS $MYSQL_DATABASE CHARACTER SET UTF8;
 GRANT ALL PRIVILEGES ON $MYSQL_DATABASE.* TO '$MYSQL_USER'@'localhost';
 FLUSH PRIVILEGES;
 EOF
-else
-    echo "MariaDB ya está configurado con el usuario y base de datos especificados."
+
+    # Reiniciar el servidor con la configuración normal
+    pkill mysqld
+    sleep 5
+    mysqld_safe --datadir="$DB_DIR" &
+    sleep 10
 fi
 
-# Verificar conexión a MariaDB
-mariadb -u $MYSQL_USER -p$MYSQL_PASSWORD -e "USE $MYSQL_DATABASE; SHOW TABLES;"
-
-# Inicializar la base de datos con el archivo SQL si no se ha hecho
-if ! mariadb -u $MYSQL_USER -p$MYSQL_PASSWORD -e "USE $MYSQL_DATABASE; SHOW TABLES;" | grep -q 'some_table_name'; then
-    echo "Inicializando la base de datos con dengue_glue.sql..."
-    mariadb -u $MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE < $SQL_FILE_PATH
+# Verificar la conexión
+echo "Verificando la conexión a MariaDB..."
+if mysql -u $MYSQL_USER -p$MYSQL_PASSWORD -e "USE $MYSQL_DATABASE;" &> /dev/null; then
+    echo "Conexión a MariaDB establecida correctamente"
 else
-    echo "La base de datos ya está inicializada."
+    echo "Error: No se pudo conectar a MariaDB con las credenciales proporcionadas"
+    exit 1
 fi
 
 # Configuración de GLUE

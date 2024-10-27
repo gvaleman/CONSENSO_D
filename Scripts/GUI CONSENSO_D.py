@@ -1,24 +1,25 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox, Toplevel, Label, Text, Scrollbar
+from tkinter import filedialog, messagebox, Toplevel, Text, Scrollbar
+from PIL import Image, ImageTk
 import subprocess
 from threading import Thread
 from queue import Queue, Empty
-from PIL import Image, ImageTk
 
 def ejecutar_consenso_d():
+    sequence_type_display = sequence_type_var.get()
+    # Convertir el valor mostrado al valor interno
+    sequence_type = opciones_secuenciacion_map[sequence_type_display]
     virus = virus_var.get()
     ruta = ruta_var.get()
 
-    if not virus or not ruta:
-        messagebox.showerror("Error", "Seleccione un tipo de virus y/o ruta.")
+    if not sequence_type or not virus or not ruta:
+        messagebox.showerror("Error", "Seleccione un tipo de secuenciación, tipo de virus y/o ruta.")
         return
 
-    # Crear ventana de progreso
-    ventana_progreso = Toplevel(root)
+    ventana_progreso = Toplevel(ventana)
     ventana_progreso.title("Procesando...")
-    Label(ventana_progreso, text="Procesando...").pack(pady=10)
+    tk.Label(ventana_progreso, text="Procesando...").pack(pady=10)
 
-    # Crear un área de texto con barra de desplazamiento
     area_texto = Text(ventana_progreso, wrap='word', height=20, width=80)
     area_texto.pack(side='left', fill='both', expand=True)
 
@@ -31,12 +32,9 @@ def ejecutar_consenso_d():
             queue.put(line)
         out.close()
 
-
-#Funcion Externa
     def ejecutar_script_y_actualizar_salida():
         try:
-            # Ejecutar el script CONSENSO_D con los parámetros seleccionados
-            proceso = subprocess.Popen(['/home/ics2/CONSENSO_D/Scripts/CONSENSO', virus, ruta],
+            proceso = subprocess.Popen(['/home/ics2/CONSENSO_PRUEBA', sequence_type, virus, ruta],
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE,
                                        text=True)
@@ -65,7 +63,6 @@ def ejecutar_consenso_d():
         finally:
             ventana_progreso.destroy()
 
-    # Ejecutar el script en un hilo separado para no bloquear la interfaz gráfica
     hilo = Thread(target=ejecutar_script_y_actualizar_salida)
     hilo.start()
 
@@ -74,57 +71,84 @@ def buscar_ruta():
     ruta_var.set(directorio)
 
 def salir_app():
-    root.quit()
+    ventana.quit()
 
 def acerca_de_consenso_d():
     messagebox.showinfo("Acerca de CONSENSO_D", "CONSENSO_D Viral Genome Assembler\nVersión 0.2")
 
 # Crear ventana principal
 ventana = tk.Tk()
-ventana.title("CONSENSO_D Viral Genome Assembler")
+ventana.title("CONSENSO_D: Viral Genome Assembler")
+
+# Configurar el icono de la ventana usando iconphoto
+try:
+    ruta_icono = '/home/ics2/CONSENSO_D/Resources/icon.png'
+    icono_imagen = Image.open(ruta_icono)
+    icono = ImageTk.PhotoImage(icono_imagen)
+    ventana.iconphoto(True, icono)
+except Exception as e:
+    print(f"Error al cargar el icono: {e}")
+    messagebox.showerror("Error", f"No se pudo cargar el icono: {e}")
 
 # Crear barra de menú 
 menubar = tk.Menu(ventana)
 ventana.config(menu=menubar)
 
-# Crear menú File
 menu_archivo = tk.Menu(menubar, tearoff=0)
 menu_archivo.add_command(label="Salir", command=salir_app)
 menubar.add_cascade(label="Archivo", menu=menu_archivo)
 
-# Crear menú Help
 menu_ayuda = tk.Menu(menubar, tearoff=0)
 menu_ayuda.add_command(label="Acerca de CONSENSO_D", command=acerca_de_consenso_d)
 menubar.add_cascade(label="Ayuda", menu=menu_ayuda)
-
-# Subir imagen
-ruta_imagen = '/home/ics2/CONSENSO_D/Resources/consenso logo.png'
-imagen = Image.open(ruta_imagen)
-mostrar = ImageTk.PhotoImage(imagen)
 
 # Crear y configurar el marco principal
 marco_principal = tk.Frame(ventana, padx=10, pady=10)
 marco_principal.pack(padx=10, pady=10)
 
 # Añadir la imagen a la interfaz
+ruta_imagen = '/home/ics2/CONSENSO_D/Resources/consenso logo.png'
+imagen = Image.open(ruta_imagen)
+mostrar = ImageTk.PhotoImage(imagen)
 etiqueta_imagen = tk.Label(marco_principal, image=mostrar)
-etiqueta_imagen.image = mostrar  # Guardar una referencia para evitar recolección de basura
+etiqueta_imagen.image = mostrar
 etiqueta_imagen.grid(row=0, column=0, columnspan=3, pady=10)
 
+# Diccionario para mapear la representación amigable al valor interno
+opciones_secuenciacion_map = {"Nanopore": "NANO", "Illumina": "ILLUMINA"}
+
+# Etiqueta y campo desplegable para seleccionar el tipo de secuenciación
+tk.Label(marco_principal, text="Seleccionar Tipo de Secuenciación:").grid(row=1, column=0, sticky="w")
+sequence_type_var = tk.StringVar()
+opciones_secuenciacion_display = list(opciones_secuenciacion_map.keys())
+tk.OptionMenu(marco_principal, sequence_type_var, *opciones_secuenciacion_display).grid(row=1, column=1, sticky="ew")
+
 # Etiqueta y campo desplegable para seleccionar el tipo de virus
-tk.Label(marco_principal, text="Seleccionar Tipo de Virus:").grid(row=1, column=0, sticky="w")
+tk.Label(marco_principal, text="Seleccionar Tipo de Virus:").grid(row=2, column=0, sticky="w")
 virus_var = tk.StringVar()
-opciones_virus = ["DENV_1", "DENV_2", "DENV_3", "DENV_4", "RABV"]
-tk.OptionMenu(marco_principal, virus_var, *opciones_virus).grid(row=1, column=1, sticky="ew")
+opciones_virus = ["DENV_1", "DENV_2", "DENV_3", "DENV_4", "SARS_COV_2", "RABV"]
+tk.OptionMenu(marco_principal, virus_var, *opciones_virus).grid(row=2, column=1, sticky="ew")
 
 # Etiqueta y campo para seleccionar el directorio
-tk.Label(marco_principal, text="Seleccionar Ruta del Directorio:").grid(row=2, column=0, sticky="w")
+tk.Label(marco_principal, text="Seleccionar Ruta del Directorio:").grid(row=3, column=0, sticky="w")
 ruta_var = tk.StringVar()
-tk.Entry(marco_principal, textvariable=ruta_var, width=50).grid(row=2, column=1, sticky="ew")
-tk.Button(marco_principal, text="Buscar", command=buscar_ruta).grid(row=2, column=2, sticky="ew")
+tk.Entry(marco_principal, textvariable=ruta_var, width=50).grid(row=3, column=1, sticky="ew")
+tk.Button(marco_principal, text="Buscar", command=buscar_ruta).grid(row=3, column=2, sticky="ew")
 
-# Botón para ejecutar CONSENSO_D
-tk.Button(marco_principal, text="Ejecutar CONSENSO_D", command=ejecutar_consenso_d).grid(row=3, column=0, columnspan=3, pady=10)
+# Botón para ejecutar CONSENSO_D con estilo personalizado
+boton_ejecutar = tk.Button(
+    marco_principal, 
+    text="Ejecutar CONSENSO_D", 
+    command=ejecutar_consenso_d,
+    bg="#1e97f3", 
+    fg="white", 
+    activebackground="#0056b3", 
+    activeforeground="white",
+    font=("Helvetica", 12, "bold"),  # Fuente en negrita y tamaño más grande
+    padx=8,  # Margen horizontal
+    pady=4   # Margen vertical
+)
+boton_ejecutar.grid(row=4, column=0, columnspan=3, pady=10)
 
 # Ejecutar el bucle principal de la interfaz gráfica
 ventana.mainloop()
