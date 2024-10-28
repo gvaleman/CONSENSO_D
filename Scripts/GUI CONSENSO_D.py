@@ -1,3 +1,4 @@
+import os
 import tkinter as tk
 from tkinter import filedialog, messagebox, Toplevel, Text, Scrollbar
 from PIL import Image, ImageTk
@@ -34,7 +35,13 @@ def ejecutar_consenso_d():
 
     def ejecutar_script_y_actualizar_salida():
         try:
-            proceso = subprocess.Popen(['/home/ics2/CONSENSO_PRUEBA', sequence_type, virus, ruta],
+            # Obtener el directorio actual del script
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+
+            # Construir la ruta relativa para el archivo ASSEMBLER.sh
+            script_path = os.path.join(current_dir, 'ASSEMBLER.sh')
+
+            proceso = subprocess.Popen([script_path, sequence_type, virus, ruta],
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE,
                                        text=True)
@@ -82,7 +89,8 @@ ventana.title("CONSENSO_D: Viral Genome Assembler")
 
 # Configurar el icono de la ventana usando iconphoto
 try:
-    ruta_icono = '/home/ics2/CONSENSO_D/Resources/icon.png'
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    ruta_icono = os.path.join(current_dir, '..', 'Resources', 'icon.png')
     icono_imagen = Image.open(ruta_icono)
     icono = ImageTk.PhotoImage(icono_imagen)
     ventana.iconphoto(True, icono)
@@ -107,12 +115,15 @@ marco_principal = tk.Frame(ventana, padx=10, pady=10)
 marco_principal.pack(padx=10, pady=10)
 
 # Añadir la imagen a la interfaz
-ruta_imagen = '/home/ics2/CONSENSO_D/Resources/consenso logo.png'
-imagen = Image.open(ruta_imagen)
-mostrar = ImageTk.PhotoImage(imagen)
-etiqueta_imagen = tk.Label(marco_principal, image=mostrar)
-etiqueta_imagen.image = mostrar
-etiqueta_imagen.grid(row=0, column=0, columnspan=3, pady=10)
+try:
+    ruta_imagen = os.path.join(current_dir, '..', 'Resources', 'consenso logo.png')
+    imagen = Image.open(ruta_imagen)
+    mostrar = ImageTk.PhotoImage(imagen)
+    etiqueta_imagen = tk.Label(marco_principal, image=mostrar)
+    etiqueta_imagen.image = mostrar
+    etiqueta_imagen.grid(row=0, column=0, columnspan=3, pady=10)
+except Exception as e:
+    messagebox.showerror("Error", f"No se pudo cargar la imagen: {e}")
 
 # Diccionario para mapear la representación amigable al valor interno
 opciones_secuenciacion_map = {"Nanopore": "NANO", "Illumina": "ILLUMINA"}

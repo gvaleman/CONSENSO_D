@@ -70,7 +70,15 @@ def use_gui():
     print("*          Usando CONSENSO_D en GUI           *")
     print("***********************************************")
     print("Lanzando interfaz gráfica...")
-    os.system('python3 /home/ics2/CONSENSO_D/Scripts/GUI\\ CONSENSO_D.py')
+
+    # Obtener la ruta del directorio donde está el script actual
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Construir la ruta relativa al archivo de la GUI
+    gui_script_path = os.path.join(current_dir, 'GUI CONSENSO_D.py')
+    
+    # Ejecutar el script de la GUI
+    os.system(f'python3 "{gui_script_path}"')
 
 
 def guided_console():
