@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Función para imprimir mensajes bonitos
+print_message() {
+    echo "=================================================="
+    echo "$1"
+    echo "=================================================="
+}
+
+# Imprimir mensaje de inicio de instalación de conda
+print_message "Instalando Entorno CONDA"
+
+# Instalar el entorno con conda
+conda env create -f environment.yml
+
+#Descomprimir Dengue GLUE
+tar -xf Dengue-GLUE.tar.xz
+
+# Cambiar al directorio de scripts
+cd Scripts || { echo "No se pudo cambiar al directorio Scripts"; exit 1; }
+
+# Hacer ejecutables todos los scripts en el directorio
+chmod +x ./*
+
+# Imprimir mensaje de instalación de GLUE
+print_message "Instalando GLUE para determinación de linajes"
+
+# Ejecutar el script de instalación de GLUE
+./GLU_INSTALL.sh || { echo "Error durante la instalación de GLUE"; exit 1; }
+
+# Copiar el script CONSENSO.py a bin
+cp CONSENSO.py /usr/local/bin || { echo "Error al copiar CONSENSO.py a /usr/local/bin"; exit 1; }
+
+# Volver al directorio anterior
+cd ..
+
+# Imprimir mensaje de finalización de instalación
+print_message "Instalación realizada con éxito. Haga un test de instalación corriendo 'CONSENSO --help'"
+
