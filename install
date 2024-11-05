@@ -1,6 +1,5 @@
 #!/bin/bash
 
-cd
 # Función para imprimir mensajes bonitos
 print_message() {
     echo "=================================================="
