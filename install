@@ -1,5 +1,6 @@
 #!/bin/bash
 
+cd
 # Función para imprimir mensajes bonitos
 print_message() {
     echo "=================================================="
@@ -28,8 +29,14 @@ print_message "Instalando GLUE para determinación de linajes"
 # Ejecutar el script de instalación de GLUE
 ./GLU_INSTALL.sh || { echo "Error durante la instalación de GLUE"; exit 1; }
 
+#hacer ejecutable el script bin
+
+cd ..
+cd bin
+chmod +x ./*
+
 # Copiar el script CONSENSO.py a bin
-cp CONSENSO.py /usr/local/bin || { echo "Error al copiar CONSENSO.py a /usr/local/bin"; exit 1; }
+#cp CONSENSO.py /usr/local/bin || { echo "Error al copiar CONSENSO.py a /usr/local/bin"; exit 1; }
 
 # Volver al directorio anterior
 cd ..
