@@ -1,4 +1,6 @@
 #!/bin/bash
+#Salir a la carpeta homa
+cd
 
 # Obtener el tipo de secuenciación
 sequence_type=$1
@@ -45,7 +47,7 @@ echo "--             ENSAMBLANDO              --"
 sleep 0.3
 echo "--                                      --"
 sleep 0.3
-echo "--               $serotype                 --"
+echo "--             $serotype                --"
 sleep 0.3
 echo "--                                      --"
 sleep 0.3
@@ -67,6 +69,7 @@ cd "$dir"
 
 if [ "$sequence_type" == "NANO" ]; then
     # El bloque para NANO permanece igual
+
     for file in $(ls -d */); do
         cd "$file" || continue
         sample_name=${PWD##*/}
@@ -136,18 +139,21 @@ if [ "$sequence_type" == "NANO" ]; then
         rm SAMPLE_cns.fastq SAMPLE_cns.fasta
         rm calls.vcf.gz normalized.vcf.gz Output.aln.sam Output.aln.bam Output.sorted.bam Output.sorted.bam.bai
 
-        printf '%s\n' "     "
+        printf '%s\n' "----------------------------------------"
         printf '%s\n' "           PROCESO TERMINADO            "
-        printf '%s\n' "     "
+        printf '%s\n' "----------------------------------------"
         cd ..
     done
 
 elif [ "$sequence_type" == "ILLUMINA" ]; then
-    for R1_file in *_R1.fastq.gz; do
-        R2_file="${R1_file/_R1.fastq.gz/_R2.fastq.gz}"
-        sample_name=$(basename "$R1_file" "_R1.fastq.gz")
+    # Procesar archivos Illumina en subdirectorios
+    while IFS= read -r -d '' sample_dir; do
+        cd "$sample_dir" || continue
+        R1_file=$(find . -maxdepth 1 -name '*_R1_001.fastq.gz' -print -quit)
+        R2_file=$(find . -maxdepth 1 -name '*_R2_001.fastq.gz' -print -quit)
 
-        if [ -f "$R2_file" ]; then
+        if [ -n "$R1_file" ] && [ -n "$R2_file" ]; then
+            sample_name=$(basename "$R1_file" "_R1_001.fastq.gz")
             echo "Mapeando con Illumina para la muestra $sample_name..."
             minimap2 -ax sr "$fasta_file" "$R1_file" "$R2_file" > Output_${sample_name}.aln.sam
 
@@ -177,18 +183,21 @@ elif [ "$sequence_type" == "ILLUMINA" ]; then
             rm SAMPLE_${sample_name}_cns.fastq SAMPLE_${sample_name}_cns.fasta
             rm calls_${sample_name}.vcf.gz normalized_${sample_name}.vcf.gz Output_${sample_name}.aln.sam Output_${sample_name}.aln.bam Output_${sample_name}.sorted.bam Output_${sample_name}.sorted.bam.bai
         else
-            echo "No se encontró el archivo R2 correspondiente para ${sample_name}"
+            echo "No se encontraron archivos R1 y R2 adecuados en $sample_dir"
         fi
-    done
+
+        cd ..
+    done < <(find . -type d -mindepth 1 -maxdepth 1 -print0)
 
 else
     echo "Tipo de secuenciación no válido. Use 'NANO' o 'ILLUMINA'."
     exit 1
 fi
 
+# ... (el resto del código final permanece igual)
+
 printf '%s\n' "     "
 printf '%s\n' "     "
-# Ajuste el comando find para buscar archivos .fasta usando comillas por seguridad.
 cat $(find . -name "*.fasta") > "all_consensus_$serotype.fasta"
 echo "	 ____  ____   ___     __    ___  _____  ___                         
 	|    \|    \ /   \   /  ]  /  _]/ ___/ /   \                        
