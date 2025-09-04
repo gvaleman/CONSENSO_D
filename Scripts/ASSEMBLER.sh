@@ -1,65 +1,140 @@
 #!/bin/bash
-#Salir a la carpeta homa
+
+
+# Salir a la carpeta home para asegurar que las rutas relativas sean correctas
 cd
 
-# Obtener el tipo de secuenciación
+# Obtener los argumentos
 sequence_type=$1
-
-# Obtener el serotipo a ensamblar y la ruta de la secuencia de referencia
 serotype=$2
+dir=$3
+primer_bed_file=$4
 
-# Obtener la ruta del directorio actual
+# Obtener la ruta del directorio actual (la carpeta home del usuario)
 current_dir=$PWD
 
-# Definir la secuencia de referencia según el serotipo especificado
-if [ "$serotype" == "DENV_1" ]; then
-    fasta_file="$current_dir/CONSENSO_D/Ref_DENV/Reference_DV_1.fasta"
-elif [ "$serotype" == "DENV_2" ]; then
-    fasta_file="$current_dir/CONSENSO_D/Ref_DENV/Reference_DV_2.fasta"
-elif [ "$serotype" == "DENV_3" ]; then
-    fasta_file="$current_dir/CONSENSO_D/Ref_DENV/Reference_DV_3.fasta"
-elif [ "$serotype" == "DENV_4" ]; then
-    fasta_file="$current_dir/CONSENSO_D/Ref_DENV/Reference_DV_4.fasta"
-elif [ "$serotype" == "SARS_COV_2" ]; then
-    fasta_file="$current_dir/CONSENSO_D/Ref_DENV/REF_NC_045512_SARS_COV_2.fasta"
-elif [ "$serotype" == "RABV" ]; then
-    fasta_file="$current_dir/CONSENSO_D/Ref_DENV/RABV_Reference.fasta"
+
+# Redirigir la salida a un archivo temporal en la carpeta home del usuario
+LOG_FILE_TEMP="$HOME/proceso_log_temp.txt"
+exec > >(tee -a "$LOG_FILE_TEMP") 2>&1
+
+# Calcular número óptimo de hilos (80% de los disponibles, mínimo 1)
+available_threads=$(nproc)
+optimal_threads=$(echo "scale=0; ($available_threads * 0.8)/1" | bc)
+threads=${optimal_threads:-1}  # Si es 0, usar 1 hilo
+threads=${threads%%.*}  # Eliminar decimales (redondeo hacia abajo)
+
+echo "Usando $threads hilos para el procesamiento"
+
+# Definir rutas del clasificador según el serotipo
+classification_available=false
+model_path=""
+encoder_path=""
+
+# Detectar la ubicación de los scripts
+if [ -f "$current_dir/CONSENSO_D/Scripts/DENV_Universal_Classifier.py" ]; then
+    classifier_script="$current_dir/CONSENSO_D/Scripts/DENV_Universal_Classifier.py"
+    primer_extractor_script="$current_dir/CONSENSO_D/Scripts/extract_primers.py"
+elif [ -f "$current_dir/Scripts/DENV_Universal_Classifier.py" ]; then
+    classifier_script="$current_dir/Scripts/DENV_Universal_Classifier.py"
+    primer_extractor_script="$current_dir/Scripts/extract_primers.py"
+elif [ -f "./DENV_Universal_Classifier.py" ]; then
+    classifier_script="./DENV_Universal_Classifier.py"
+    primer_extractor_script="./extract_primers.py"
 else
-    echo "Error: serotipo / Virus no válido"
-    echo "
-    Intentar con las opciones
-              DENV_1
-              DENV_2
-              DENV_3
-              DENV_4
-              SARS_COV_2
-              RABV "
-    exit 1
+    classifier_script=""
+    primer_extractor_script=""
 fi
 
-echo "--*--*--*--*--*--*--*--*--*--*--*--*--*---"
+case "$serotype" in
+    "DENV_1")
+        fasta_file="$current_dir/CONSENSO_D/Ref_DENV/Reference_DV_1.fasta"
+        model_path="$current_dir/CONSENSO_D/Viral-Branch/VB_DENV1/dengue_lineage_classifier.joblib.gz"
+        encoder_path="$current_dir/CONSENSO_D/Viral-Branch/VB_DENV1/label_encoder.joblib"
+        ;;
+    "DENV_2")
+        fasta_file="$current_dir/CONSENSO_D/Ref_DENV/Reference_DV_2.fasta"
+        model_path="$current_dir/CONSENSO_D/Viral-Branch/VB_DENV2/dengue_lineage_classifier.joblib.gz"
+        encoder_path="$current_dir/CONSENSO_D/Viral-Branch/VB_DENV2/label_encoder.joblib"
+        ;;
+    "DENV_3")
+        fasta_file="$current_dir/CONSENSO_D/Ref_DENV/Reference_DV_3.fasta"
+        model_path="$current_dir/CONSENSO_D/Viral-Branch/VB_DENV3/dengue_lineage_classifier.joblib.gz"
+        encoder_path="$current_dir/CONSENSO_D/Viral-Branch/VB_DENV3/label_encoder.joblib"
+        ;;
+    "DENV_4")
+        fasta_file="$current_dir/CONSENSO_D/Ref_DENV/Reference_DV_4.fasta"
+        model_path="$current_dir/CONSENSO_D/Viral-Branch/VB_DENV4/dengue_lineage_classifier.joblib.gz"
+        encoder_path="$current_dir/CONSENSO_D/Viral-Branch/VB_DENV4/label_encoder.joblib"
+        ;;
+    "SARS_COV_2")
+        fasta_file="$current_dir/CONSENSO_D/Ref_DENV/REF_NC_045512_SARS_COV_2.fasta"
+        ;;
+    "RABV")
+        fasta_file="$current_dir/CONSENSO_D/Ref_DENV/RABV_Reference.fasta"
+        ;;
+    "N_RABV")
+        fasta_file="$current_dir/CONSENSO_D/Ref_DENV/Lisa_RABV_N.fasta"
+        ;;
+    *)
+        echo "Error: serotipo / Virus no válido"
+        echo "
+
+Intentar con las opciones
+DENV_1
+DENV_2
+DENV_3
+DENV_4
+SARS_COV_2
+RABV
+N_RABV"
+        exit 1
+        ;;
+esac
+
+# Verificar si la clasificación está disponible para este serotipo
+if [[ "$serotype" =~ ^DENV_[1-4]$ ]] && [ -f "$model_path" ] && [ -f "$encoder_path" ] && [ -f "$classifier_script" ]; then
+    classification_available=true
+    echo "🧬 Clasificación de linajes disponible para $serotype"
+else
+    if [[ "$serotype" =~ ^DENV_[1-4]$ ]]; then
+        echo "ℹ️  Clasificación no disponible para $serotype"
+        if [ ! -f "$model_path" ]; then
+            echo "   ❌ Modelo no encontrado: $(basename "$model_path")"
+        fi
+        if [ ! -f "$encoder_path" ]; then
+            echo "   ❌ Encoder no encontrado: $(basename "$encoder_path")"
+        fi
+        if [ ! -f "$classifier_script" ]; then
+            echo "   ❌ Script clasificador no encontrado: $(basename "$classifier_script")"
+        fi
+    fi
+fi
+
+echo "-----------------------------"
 sleep 0.3
-echo "--                                      --"
+echo "-- --"
 sleep 0.3
-echo "--                                      --"
+echo "-- --"
 sleep 0.3
-echo "--             ENSAMBLANDO              --"
+echo "-- ENSAMBLANDO --"
 sleep 0.3
-echo "--                                      --"
+echo "-- --"
+echo "-- $serotype --"
 sleep 0.3
-echo "--             $serotype                --"
+echo "-- --"
+if [ "$classification_available" = true ]; then
+echo "-- CON CLASIFICACIÓN --"
+fi
 sleep 0.3
-echo "--                                      --"
+echo "-- --"
 sleep 0.3
-echo "--                                      --"
-sleep 0.3
-echo "--*--*--*--*--*--*--*--*--*--*--*--*--*---"
+echo "-----------------------------"
 sleep 1
-echo "--  Instituto De ciencias Sostenibles   --"
+echo "-- Instituto De ciencias Sostenibles --"
 sleep 0.1
 echo "------------------------------------------"
 
-dir=$3
 if [ ! -d "$dir" ]; then
     echo "No se puede acceder al directorio: $dir"
     exit 1
@@ -67,29 +142,116 @@ fi
 
 cd "$dir"
 
-if [ "$sequence_type" == "NANO" ]; then
-    # El bloque para NANO permanece igual
+# Crear directorios para resultados en la raíz del directorio de trabajo
+mkdir -p QC_Reports
+mkdir -p Lineage_Classification
 
+# Preparar archivos de adaptadores y primers si existen
+if [ -f "$current_dir/CONSENSO_D/Adapters/adapters.csv" ]; then
+    awk -F',' 'NR>1 && $1!="" && $2!="" {print ">"$1"\n"$2}' "$current_dir/CONSENSO_D/Adapters/adapters.csv" > adapters.fasta
+    ADAPTERS_FASTA="adapters.fasta"
+else
+    ADAPTERS_FASTA=""
+fi
+
+# Preparar archivo de primers usando el script de extracción
+PRIMERS_FASTA=""
+if [ -n "$primer_bed_file" ] && [ "$primer_bed_file" != "none" ] && [ -f "$primer_bed_file" ] && [ -f "$primer_extractor_script" ]; then
+    echo "🧬 Extrayendo secuencias de primers desde $primer_bed_file..."
+    python3 "$primer_extractor_script" "$fasta_file" "$primer_bed_file" "primers.fasta"
+    if [ -s "primers.fasta" ]; then
+        PRIMERS_FASTA="primers.fasta"
+        echo "✅ Primers extraídos correctamente a primers.fasta"
+    else
+        echo "❌ Error: No se pudieron extraer los primers. El archivo primers.fasta está vacío."
+    fi
+elif [ -n "$primer_bed_file" ] && [ "$primer_bed_file" != "none" ]; then
+    echo "❌ Error: No se encontró el archivo de primers .bed o el script de extracción."
+    echo "   BED file: $primer_bed_file"
+    echo "   Extractor script: $primer_extractor_script"
+fi
+
+# Función para buscar y procesar VCFs automáticamente
+run_batch_classification() {
+    local working_dir="$1"
+
+    if [ "$classification_available" = true ]; then
+        echo ""
+        echo "🧬 BUSCANDO VCFs PARA CLASIFICACIÓN BATCH..."
+
+        # Definir el nombre del archivo de log para la clasificación
+        log_file="$working_dir/Lineage_Classification/classification.log"
+        output_file="$working_dir/Lineage_Classification/batch_${serotype}_classifications.csv"
+
+        # Ejecutar el clasificador en modo batch y redirigir la salida al log
+        echo "Iniciando clasificación. Logs guardados en: $(basename "$log_file")"
+
+        # CAMBIO CRUCIAL: Usar --search-dir en lugar de --vcf-dir y pasar el directorio de trabajo
+        python3 "$classifier_script" \
+            --search-dir "$working_dir" \
+            --model "$model_path" \
+            --encoder "$encoder_path" \
+            --serotype "$serotype" \
+            --output "$output_file" \
+            --pattern "*_normalized.vcf.gz" > "$log_file" 2>&1
+
+        classification_success=$?
+
+        if [ $classification_success -eq 0 ]; then
+            echo "✅ Clasificación batch completada exitosamente"
+            echo "   📊 Resultados guardados en: $(basename "$output_file")"
+
+            # Mostrar resumen rápido si el archivo existe
+            if [ -f "$output_file" ]; then
+                echo ""
+                echo "📋 RESUMEN RÁPIDO DE CLASIFICACIONES:"
+                echo "   Total de muestras procesadas: $(tail -n +2 "$output_file" | wc -l)"
+
+                # Resumen por linajes
+                echo "   Distribución por linajes:"
+                tail -n +2 "$output_file" | cut -d',' -f3 | sort | uniq -c | sort -nr | head -5 | while read count lineage; do
+                    echo "      $lineage: $count muestra(s)"
+                done
+
+                # Resumen por confianza
+                echo "   Distribución por confianza:"
+                tail -n +2 "$output_file" | cut -d',' -f4 | sort | uniq -c | sort -nr | while read count confidence; do
+                    echo "      $confidence: $count muestra(s)"
+                done
+            fi
+        else
+            echo "❌ Error en la clasificación batch"
+            echo "   🔍 Para más detalles, revise el log: $log_file"
+        fi
+
+        return $classification_success
+    fi
+
+    return 1
+}
+
+if [ "$sequence_type" == "NANO" ]; then
+    # Procesamiento para secuenciación Nanopore (código original)
     for file in $(ls -d */); do
         cd "$file" || continue
         sample_name=${PWD##*/}
-        
+
         # Procesar Nanopore
         if ls *.fastq.gz 1> /dev/null 2>&1; then
-            printf '%s\n' " "
-            printf '%s\n' " "
+            echo "Procesando archivo : $(basename "$file")"
             printf '%s\n' "-----------------------------------------------------"
-            echo "                $(basename "$file")                  "
-            printf '%s\n' "          Iniciando Proceso de ensamblaje            "
+            echo "         $(basename "$file")             "
+            printf '%s\n' "       Iniciando Proceso de ensamblaje         "
             printf '%s\n' "-----------------------------------------------------"
             printf '%s\n' " "
-        
+
             printf '%s\n' "Descomprimiendo..."
             cat $(ls *.fastq.gz) > "${sample_name}.fastq.gz"
             gzip -df "${sample_name}.fastq.gz"
             printf '%s\n' "Descompresión realizada con éxito"
             muestra=$(ls *.fastq)
         elif ls *.fastq 1> /dev/null 2>&1; then
+            echo "Procesando archivo : $(basename "$file")"
             echo "----------------------------------------------------------------------------"
             echo "⚠  Archivos .fastq ya descomprimidos en la carpeta \"$(basename "$file")\". Continuando y sobrescribiendo...  ⚠"
             echo "----------------------------------------------------------------------------"
@@ -97,8 +259,8 @@ if [ "$sequence_type" == "NANO" ]; then
         else
             printf '%s\n' " "
             printf '%s\n' "-----------------------------------------------------"
-            echo "                $(basename "$file")                  "
-            printf '%s\n' "                                                     "
+            echo "         $(basename "$file")             "
+            printf '%s\n' "                             "
             printf '%s\n' "-----------------------------------------------------"
             printf '%s\n' " "
             echo "  "
@@ -108,45 +270,76 @@ if [ "$sequence_type" == "NANO" ]; then
             continue
         fi
 
-        # Mapeo para Nanopore
+        # Mapeo para Nanopore con multihilo
         printf '%s\n' "  "
-        printf '%s\n' "      Mapeando contra referencia...      "
-        minimap2 -a "$fasta_file" "$muestra" > Output.aln.sam
+        printf '%s\n' "     Mapeando contra referencia con $threads hilos...       "
+        minimap2 -t $threads -a "$fasta_file" "$muestra" > Output.aln.sam
 
         # Proceso común para ambos tipos de datos
-        samtools view -S -b Output.aln.sam > Output.aln.bam
-        samtools sort Output.aln.bam -o Output.sorted.bam
+        samtools view -@ $threads -S -b Output.aln.sam > Output.aln.bam
+        samtools sort -@ $threads Output.aln.bam -o Output.sorted.bam
         samtools index Output.sorted.bam
 
-        printf '%s\n' "     "
+        printf '%s\n' "      "
         printf '%s\n' "Verificando calidad del mapeo..."
         samtools flagstat Output.sorted.bam > "${sample_name}.flagstat"
         samtools stats Output.sorted.bam > "${sample_name}.stats"
+
+        # Generar gráficos de calidad con plot-bamstats
+        mkdir -p "${sample_name}_plots"
         plot-bamstats -p "${sample_name}_plots/" "${sample_name}.stats"
+
+        # Generar informe HTML de calidad con MultiQC
+        multiqc -f -o "${sample_name}_qc_report" "${sample_name}.stats" "${sample_name}.flagstat"
 
         # Generar archivo de cobertura
         samtools depth Output.sorted.bam > "${sample_name}.coverage"
+        awk '{sum+=$3; count++} END {print "Cobertura promedio:", sum/count}' "${sample_name}.coverage"
 
-        printf '%s\n' "     "
+        # Generar gráfico de cobertura con gnuplot
+        echo "set terminal png size 1200,600
+         set output '${sample_name}_coverage_plot.png'
+         set title 'Cobertura de secuenciación para ${sample_name}'
+         set xlabel 'Posición en el genoma'
+         set ylabel 'Profundidad de cobertura'
+         set grid
+         plot '${sample_name}.coverage' using 2:3 with lines linecolor rgb 'blue' title 'Cobertura'" > coverage_plot.gnuplot
+
+        gnuplot coverage_plot.gnuplot
+
+        printf '%s\n' "      "
         printf '%s\n' "::::::::::CREANDO SECUENCIA CONSENSO::::::::::::"
-        # Generar archivo VCF y secuencia consenso
-        bcftools mpileup -Ou -f "$fasta_file" Output.sorted.bam | bcftools call -c -Oz -o calls.vcf.gz
-        bcftools norm -f "$fasta_file" calls.vcf.gz -Oz -o normalized.vcf.gz
-        bcftools view -i 'QUAL>20' normalized.vcf.gz | vcfutils.pl vcf2fq > SAMPLE_cns.fastq
-        seqtk seq -aQ64 -q20 -n N SAMPLE_cns.fastq > SAMPLE_cns.fasta
+        # Generar archivo VCF y secuencia consenso con multihilo
+        bcftools mpileup -Ou -f "$fasta_file" Output.sorted.bam | bcftools call -c -Oz -o "${sample_name}_calls.vcf.gz"
+        bcftools norm -f "$fasta_file" "${sample_name}_calls.vcf.gz" -Oz -o "${sample_name}_normalized.vcf.gz"
+        bcftools view -i 'QUAL>8' "${sample_name}_normalized.vcf.gz" | vcfutils.pl vcf2fq > SAMPLE_cns.fastq
+        seqtk seq -aQ64 -q08 -n N SAMPLE_cns.fastq > SAMPLE_cns.fasta
         echo ">${sample_name}" > "${sample_name}.fasta"
         tail -n +2 SAMPLE_cns.fasta >> "${sample_name}.fasta"
-        rm SAMPLE_cns.fastq SAMPLE_cns.fasta
-        rm calls.vcf.gz normalized.vcf.gz Output.aln.sam Output.aln.bam Output.sorted.bam Output.sorted.bam.bai
+
+        # Copiar informes de calidad al directorio principal
+        cp -r "${sample_name}_plots" "../QC_Reports/${sample_name}_plots" 2>/dev/null || true
+        cp -r "${sample_name}_qc_report" "../QC_Reports/${sample_name}_qc_report" 2>/dev/null || true
+        cp "${sample_name}_coverage_plot.png" "../QC_Reports/${sample_name}_coverage_plot.png" 2>/dev/null || true
+
+        # Limpiar archivos temporales pero mantener los importantes
+        rm SAMPLE_cns.fastq SAMPLE_cns.fasta coverage_plot.gnuplot
+        rm Output.aln.sam Output.aln.bam
 
         printf '%s\n' "----------------------------------------"
-        printf '%s\n' "           PROCESO TERMINADO            "
+        printf '%s\n' "        PROCESO TERMINADO          "
         printf '%s\n' "----------------------------------------"
+
         cd ..
     done
 
 elif [ "$sequence_type" == "ILLUMINA" ]; then
-    # Procesar archivos Illumina en subdirectorios
+    # Procesamiento para secuenciación Illumina con mejoras del Script 1
+
+    # 1. Indexar el genoma de referencia (sólo se hace una vez)
+    bwa index "$fasta_file"
+
+    # Usar find para procesar cada directorio
     while IFS= read -r -d '' sample_dir; do
         cd "$sample_dir" || continue
         R1_file=$(find . -maxdepth 1 -name '*_R1_001.fastq.gz' -print -quit)
@@ -154,34 +347,117 @@ elif [ "$sequence_type" == "ILLUMINA" ]; then
 
         if [ -n "$R1_file" ] && [ -n "$R2_file" ]; then
             sample_name=$(basename "$R1_file" "_R1_001.fastq.gz")
-            echo "Mapeando con Illumina para la muestra $sample_name..."
-            minimap2 -ax sr "$fasta_file" "$R1_file" "$R2_file" > Output_${sample_name}.aln.sam
+            echo "Procesando archivo : $sample_name"
+            echo "Mapeando con Illumina para la muestra $sample_name usando $threads hilos..."
 
-            # Proceso común para ambos tipos de datos
-            samtools view -S -b Output_${sample_name}.aln.sam > Output_${sample_name}.aln.bam
-            samtools sort Output_${sample_name}.aln.bam -o Output_${sample_name}.sorted.bam
+            # Generar informe de calidad de lecturas crudas con FastQC
+            mkdir -p fastqc_results
+            fastqc -t $threads -o fastqc_results "$R1_file" "$R2_file"
+
+            # Paso de limpieza: Trimmomatic con adaptadores si están disponibles
+            R1_trimmed="${sample_name}_R1_paired_trimmed.fastq.gz"
+            R2_trimmed="${sample_name}_R2_paired_trimmed.fastq.gz"
+            R1_unpaired="${sample_name}_R1_unpaired_trimmed.fastq.gz"
+            R2_unpaired="${sample_name}_R2_unpaired_trimmed.fastq.gz"
+
+            if [ -n "$ADAPTERS_FASTA" ]; then
+                trimmomatic PE -threads $threads \
+                    "$R1_file" "$R2_file" \
+                    "$R1_trimmed" "$R1_unpaired" \
+                    "$R2_trimmed" "$R2_unpaired" \
+                    ILLUMINACLIP:"../$ADAPTERS_FASTA":2:30:10 \
+                    SLIDINGWINDOW:4:20 MINLEN:50
+            else
+                trimmomatic PE -threads $threads \
+                    "$R1_file" "$R2_file" \
+                    "$R1_trimmed" "$R1_unpaired" \
+                    "$R2_trimmed" "$R2_unpaired" \
+                    SLIDINGWINDOW:4:20 MINLEN:50
+            fi
+
+            # Remoción de primers con cutadapt si están disponibles
+            if [ -n "$PRIMERS_FASTA" ]; then
+                R1_final="${sample_name}_R1_final_trimmed.fastq.gz"
+                R2_final="${sample_name}_R2_final_trimmed.fastq.gz"
+
+                cutadapt -g file:"../$PRIMERS_FASTA" -G file:"../$PRIMERS_FASTA" \
+                    -o "$R1_final" -p "$R2_final" \
+                    "$R1_trimmed" "$R2_trimmed" \
+                    --minimum-length 50 \
+                    -j $threads
+
+                R1_for_mapping="$R1_final"
+                R2_for_mapping="$R2_final"
+            else
+                R1_for_mapping="$R1_trimmed"
+                R2_for_mapping="$R2_trimmed"
+            fi
+
+            # FastQC post-trimming
+            fastqc -t $threads -o fastqc_results "$R1_for_mapping" "$R2_for_mapping"
+
+            # 2. Mapeo con BWA-MEM con multihilo
+            bwa mem -t $threads "$fasta_file" "$R1_for_mapping" "$R2_for_mapping" > Output_${sample_name}.aln.sam
+
+            # Proceso común para ambos tipos de datos con multihilo
+            samtools view -@ $threads -S -b Output_${sample_name}.aln.sam > Output_${sample_name}.aln.bam
+            samtools sort -@ $threads Output_${sample_name}.aln.bam -o Output_${sample_name}.sorted.bam
             samtools index Output_${sample_name}.sorted.bam
 
-            printf '%s\n' "     "
-            printf '%s\n' "Verificando calidad del mapeo..."
-            samtools flagstat Output_${sample_name}.sorted.bam > "${sample_name}.flagstat"
-            samtools stats Output_${sample_name}.sorted.bam > "${sample_name}.stats"
-            plot-bamstats -p "${sample_name}_plots/" "${sample_name}.stats"
+            # CRUCIAL: Verificar si el archivo BAM no está vacío antes de continuar.
+            if [ -s "Output_${sample_name}.sorted.bam" ]; then
+                printf '%s\n' "      "
+                printf '%s\n' "Verificando calidad del mapeo..."
+                samtools flagstat Output_${sample_name}.sorted.bam > "${sample_name}.flagstat"
+                samtools stats Output_${sample_name}.sorted.bam > "${sample_name}.stats"
 
-            # Generar archivo de cobertura
-            samtools depth Output_${sample_name}.sorted.bam > "${sample_name}.coverage"
+                # Generar gráficos de calidad con plot-bamstats (igual que en Nanopore)
+                mkdir -p "${sample_name}_plots"
+                plot-bamstats -p "${sample_name}_plots/" "${sample_name}.stats"
 
-            printf '%s\n' "     "
-            printf '%s\n' "::::::::::CREANDO SECUENCIA CONSENSO::::::::::::"
-            # Generar archivo VCF y secuencia consenso
-            bcftools mpileup -Ou -f "$fasta_file" Output_${sample_name}.sorted.bam | bcftools call -c -Oz -o calls_${sample_name}.vcf.gz
-            bcftools norm -f "$fasta_file" calls_${sample_name}.vcf.gz -Oz -o normalized_${sample_name}.vcf.gz
-            bcftools view -i 'QUAL>20' normalized_${sample_name}.vcf.gz | vcfutils.pl vcf2fq > SAMPLE_${sample_name}_cns.fastq
-            seqtk seq -aQ64 -q20 -n N SAMPLE_${sample_name}_cns.fastq > SAMPLE_${sample_name}_cns.fasta
-            echo ">${sample_name}" > "${sample_name}.fasta"
-            tail -n +2 SAMPLE_${sample_name}_cns.fasta >> "${sample_name}.fasta"
-            rm SAMPLE_${sample_name}_cns.fastq SAMPLE_${sample_name}_cns.fasta
-            rm calls_${sample_name}.vcf.gz normalized_${sample_name}.vcf.gz Output_${sample_name}.aln.sam Output_${sample_name}.aln.bam Output_${sample_name}.sorted.bam Output_${sample_name}.sorted.bam.bai
+                # Generar informe HTML de calidad con MultiQC
+                multiqc -f -o "${sample_name}_qc_report" "${sample_name}.stats" "${sample_name}.flagstat" fastqc_results
+
+                # Generar archivo de cobertura
+                samtools depth Output_${sample_name}.sorted.bam > "${sample_name}.coverage"
+
+                # Generar gráfico de cobertura con gnuplot (igual que en Nanopore)
+                echo "set terminal png size 1200,600
+                 set output '${sample_name}_coverage_plot.png'
+                 set title 'Cobertura de secuenciación para ${sample_name}'
+                 set xlabel 'Posición en el genoma'
+                 set ylabel 'Profundidad de cobertura'
+                 set grid
+                 plot '${sample_name}.coverage' using 2:3 with lines linecolor rgb 'blue' title 'Cobertura'" > coverage_plot.gnuplot
+
+                gnuplot coverage_plot.gnuplot
+
+                printf '%s\n' "      "
+                printf '%s\n' "::::::::::CREANDO SECUENCIA CONSENSO::::::::::::"
+                # Generar archivo VCF y secuencia consenso con multihilo - MANTENIENDO QUAL>30 del Script 2
+                bcftools mpileup -Ou -f "$fasta_file" Output_${sample_name}.sorted.bam | bcftools call -c -Oz -o "${sample_name}_calls.vcf.gz"
+                bcftools norm -f "$fasta_file" "${sample_name}_calls.vcf.gz" -Oz -o "${sample_name}_normalized.vcf.gz"
+                #bcftools view -i 'QUAL>30' "${sample_name}_normalized.vcf.gz" | vcfutils.pl vcf2fq > SAMPLE_${sample_name}_cns.fastq
+                bcftools view "${sample_name}_normalized.vcf.gz" | vcfutils.pl vcf2fq > SAMPLE_${sample_name}_cns.fastq
+                #seqtk seq -aQ64 -q30 -n N SAMPLE_${sample_name}_cns.fastq > SAMPLE_${sample_name}_cns.fasta
+                seqtk seq -aQ64 -n N SAMPLE_${sample_name}_cns.fastq > SAMPLE_${sample_name}_cns.fasta
+                echo ">${sample_name}" > "${sample_name}.fasta"
+                tail -n +2 SAMPLE_${sample_name}_cns.fasta >> "${sample_name}.fasta"
+
+
+                # Copiar informes de calidad al directorio principal
+                cp -r "${sample_name}_plots" "../QC_Reports/${sample_name}_plots" 2>/dev/null || true
+                cp -r "${sample_name}_qc_report" "../QC_Reports/${sample_name}_qc_report" 2>/dev/null || true
+                cp "${sample_name}_coverage_plot.png" "../QC_Reports/${sample_name}_coverage_plot.png" 2>/dev/null || true
+            else
+                echo "⚠ WARNING: Output BAM file is empty for sample $sample_name. Skipping consensus generation."
+            fi
+
+            # Limpiar archivos temporales pero mantener los importantes
+            rm Output_${sample_name}.aln.sam Output_${sample_name}.aln.bam
+            rm SAMPLE_${sample_name}_cns.fastq SAMPLE_${sample_name}_cns.fasta coverage_plot.gnuplot 2>/dev/null || true
+            rm "$R1_unpaired" "$R2_unpaired" 2>/dev/null || true
+
         else
             echo "No se encontraron archivos R1 y R2 adecuados en $sample_dir"
         fi
@@ -194,28 +470,78 @@ else
     exit 1
 fi
 
-# ... (el resto del código final permanece igual)
+# ==================== PROCESAMIENTO AUTOMÁTICO DE CLASIFICACIÓN ====================
+# Ejecutar clasificación batch automáticamente después del ensamblaje
+run_batch_classification "$dir"
 
-printf '%s\n' "     "
-printf '%s\n' "     "
+# Generar archivo multifasta con todos los consensos
+printf '%s\n' " "
+printf '%s\n' " "
 cat $(find . -name "*.fasta") > "all_consensus_$serotype.fasta"
-echo "	 ____  ____   ___     __    ___  _____  ___                         
-	|    \|    \ /   \   /  ]  /  _]/ ___/ /   \                        
-	|  o  )  D  )     | /  /  /  [_(   \_ |     |                       
-	|   _/|    /|  O  |/  /  |    _]\__  ||  O  |                       
-	|  |  |    \|     /   \_ |   [_ /  \ ||     |                       
-	|  |  |  .  \     \     ||     |\    ||     |                       
-	|__|  |__|\_|\___/ \____||_____| \___| \___/                        
-                                                                    
- _____  ____  ____    ____  _      ____  _____   ____  ___     ___  
-|     ||    ||    \  /    || |    |    ||     | /    ||   \   /   \ 
-|   __| |  | |  _  ||  o  || |     |  | |__/  ||  o  ||    \ |     |
-|  |_   |  | |  |  ||     || |___  |  | |   __||     ||  D  ||  O  |
-|   _]  |  | |  |  ||  _  ||     | |  | |  /  ||  _  ||     ||     |
-|  |    |  | |  |  ||  |  ||     | |  | |     ||  |  ||     ||     |
-|__|   |____||__|__||__|__||_____||____||_____||__|__||_____| \___/ 
-                                                                   
+
+# Generar informe final combinado con MultiQC
+multiqc -f -o "QC_Reports/Final_QC_Report_$serotype" QC_Reports/
+
+# Limpiar archivos temporales
+rm -f adapters.fasta primers.fasta 2>/dev/null
+
+#Informe
+echo "*****************************************"   # ✅ Correcto
+echo "****       GENERANDO INFORME         ****"   # ✅ Correcto
+echo "*****************************************"   # ✅ Correcto
+
+python3 "$current_dir/CONSENSO_D/Scripts/quality_report.py" "$dir"
+if [ $? -eq 0 ]; then
+    echo "✅ Informe guardado en: $(pwd)/reporte_calidad.html"
+else
+    echo "❌ Error generando el informe"
+fi
+
+
+echo " ____ ____ ___ __ ___ _____ ___
+| | \ / \ / ] / ]/ / / \
+| o ) D ) | / / / [( _ | |
+| /| /| O |/ / | ]_ || O |
+| | | | / _ | [ / \ || |
+| | | . \ \ || |\ || |
+|| ||_|_/ _||_| _| ___/
+
+| || || \ / || | | || | / || \ / \
+| | | | | _ || o || | | | |/ || o || \ | |
+| |_ | | | | || || |___ | | | || || D || O |
+| _] | | | | || _ || | | | | / || _ || || |
+| | | | | | || | || | | | | || |
+|| || |
+|| |||||||||||||_____||||_|||||___| _/
+
 "
 echo "Se ha generado un archivo multi-fasta llamado: "
-echo " -->    *all_consensus_$serotype.fasta*"
+echo " --> all_consensus_$serotype.fasta"
 echo " en la ubicación: $dir "
+echo ""
+echo "Los informes de calidad están disponibles en: $dir/QC_Reports/"
+echo "Informe final combinado: $dir/QC_Reports/Final_QC_Report_$serotype"
+
+if [ "$classification_available" = true ]; then
+    echo ""
+    echo "🧬 Los resultados de clasificación están disponibles en: $dir/Lineage_Classification/"
+    if [ -f "$dir/Lineage_Classification/batch_${serotype}_classifications.csv" ]; then
+        echo "📊 Clasificación automática: $dir/Lineage_Classification/batch_${serotype}_classifications.csv"
+        echo "📄 Log de clasificación: $dir/Lineage_Classification/classification.log"
+    fi
+fi
+
+
+# Guardar los logs en el log file
+# Definir el nombre del archivo de log final
+FINAL_LOG_NAME="CONSENSO_log.txt"
+
+# Guardar los logs en el log file
+if [ -f "$LOG_FILE_TEMP" ]; then
+    mv "$LOG_FILE_TEMP" "$dir/$FINAL_LOG_NAME"
+    echo "✅ Log movido a: $dir/$FINAL_LOG_NAME"
+
+
+echo "✅ El pipeline ha finalizado exitosamente."
+echo "Los registros completos del proceso se guardaron en:"
+echo "$dir/CONSENSO_log.txt"
