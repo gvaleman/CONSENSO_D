@@ -29,14 +29,18 @@ Despues, solo hay que esperar a que se realice la instalación del entorno para 
 
 # USANDO CONSENSO
 INSTRUCCIONES:
-- Acceder a la carpeta CONSENSO_D y abrir una terminal
-
-- 
-- Abrir una terminal, haciendo click sobre el icono de la terminal o con la combinacion de teclas CTRL+ALT+T
-- En la terminal escribir ./CONSENSO: Esto hace el llamado al scrip ejecutable
-- Escribir el serotipo que se desea ensamblar: El nombre del virus seguido de un guión bajo, seguido del serotipo, sin espacios (ejemplo: DENV_1, DENV_2, DENV_3 o DENV_4 )
-- Escribir o arrastrar el directorio de trabajo que contiene las carpetas con los archivos fastq
-- presionar ENTER y esperar que el proceso de ensamblaje termine
+- Acceder a la carpeta CONSENSO_D y entrar a la carpeta bin.
+- Abrir una terminal y ejecutar el Script CONSENSO.py. esto se puede hacer de la siguiente manera abriendo una terminal
+  ```
+  cd # sale a la carpeta home
+  cd CONSENSO_D # entrar a la carpeta de CONSENSO
+  cd bin #entrar a la carpeta bin
+  python3 CONSENSO.py -- gui #Ejecutar el Script
+  ```
+- Esto abrira una interfaz gráfica de usuario.
+- Ensamblaje de genomas: Seleccionar "Ensamblaje de genomas a la Izquierda
+- En la pantalla principal seleccionar la tecnologia de secuenciación, serotipo o virus, esquema de primers (si aplica), y dar click en Ejecutar
+- El Ensamblaje de genomas se ejecutara, mostrando el progreso. al finalizr un archivo llamado "all_consnsus.fasta" se guardara en ell directorio indicado
 
 Ejemplo:
 ```
