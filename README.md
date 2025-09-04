@@ -1,15 +1,16 @@
 # CONSENSO_D
 CONSENSO_D es un conjunto de scripts diseñado por el equipo de secuenciación y genómica del Instituto de Ciencias Sostenibles de Nicaragua con la finalidad de mapear, ensamblar y generar secuencias consenso de los 4 serotipos de Dengue y del virus de la Rabia a partir de archivos fastq de secuenciadores NANOPORE.
 
-CONSENSO_D configurar 3 scripts:
+CONSENSO_D usa multiples Scripts python y Bash que permiten realizar diferentes tareas:
 
-  - *CONSENSO* para generar una secuencia consenso
+  - Interfaz grafica intuitiva para manejar todos los procesos
+  - Ensamblaje de Genomas del los 4 serotipos del dengue, Virus de la Rabia y el SARS CoV 2
+  - Permite realizar ensamblaje de plataformas Nanopore e Illumina
+  - Realiza control de calidad de las secuencias mediante fastWC y Multi QC
+  - Realiza determinacion de linajes del virus del dengue bajo la nomenclatura Dengue-Lineages, implementando un modelo Random Forest de Aprendizaje automatico para clasificar los linajes (https://github.com/gvaleman/Viral-Branch)
+  - Determinación de mutaciones para los serotipos del dengue
 
-  - *contarX* para contar el numero de gaps(X) en una o mas secuencias consensos
-
-  - *RENOMBRAR* para renombrar uno o más nombres de las secuencias en un archivo fasta o multifasta
-
-Configurando los scripts
+Configurando CONSENSO
 
   CLONAR EL REPOSITORIO
 
@@ -18,19 +19,19 @@ En la terminal ejecutar el siguientes comando
 cd
 git clone https://github.com/gvaleman/CONSENSO_D.git
 ```
-para la configuración de los scripts, escribir en la terminal
+para la configuración, es necesario tener instalado Miniconda3. Es necesario activar un ambiente conda de la siguiente manera
 ```
-cd CONSENSO_D
-chmod +x CONFIGURAR
-./CONFIGURAR
+cd # sale a la carpeta home
+cd CONSENSO_D # entrar a la carpeta de CONSENSO
+conda env create -f environment.yml
 ```
-*Acerca del script CONSENSO*
+Despues, solo hay que esperar a que se realice la instalación del entorno para iniciar a utilizar CONSENSO.
 
-CONSENSO es un script diseñado por el equipo de secuenciación y genómica del ICS con la finalidad de mapear, ensamblar y generar una secuencia consenso de los 4 serotipos de Dengue a partir de archivos fastq de secuenciadores NANOPORE.
-CONSENSO automatiza el paso a paso del proceso para la generación de una secuencia consenso.
-
+# USANDO CONSENSO
 INSTRUCCIONES:
-- seleccionar las carpetas de los barcode de serotipo que desea ensamblar y guardarlas en un directorio de trabajo
+- Acceder a la carpeta CONSENSO_D y abrir una terminal
+
+- 
 - Abrir una terminal, haciendo click sobre el icono de la terminal o con la combinacion de teclas CTRL+ALT+T
 - En la terminal escribir ./CONSENSO: Esto hace el llamado al scrip ejecutable
 - Escribir el serotipo que se desea ensamblar: El nombre del virus seguido de un guión bajo, seguido del serotipo, sin espacios (ejemplo: DENV_1, DENV_2, DENV_3 o DENV_4 )
