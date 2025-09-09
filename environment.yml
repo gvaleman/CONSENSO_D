@@ -24,6 +24,7 @@ dependencies:
   - seaborn
   - fastqc
   - multiqc
+  - spades
   - joblib=1.4.2
   - scikit-learn=1.3.2
   - cyvcf2

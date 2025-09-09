@@ -154,21 +154,16 @@ else
     ADAPTERS_FASTA=""
 fi
 
-# Preparar archivo de primers usando el script de extracción
+# Preparar archivo de primers a partir del argumento
 PRIMERS_FASTA=""
-if [ -n "$primer_bed_file" ] && [ "$primer_bed_file" != "none" ] && [ -f "$primer_bed_file" ] && [ -f "$primer_extractor_script" ]; then
-    echo "🧬 Extrayendo secuencias de primers desde $primer_bed_file..."
-    python3 "$primer_extractor_script" "$fasta_file" "$primer_bed_file" "primers.fasta"
-    if [ -s "primers.fasta" ]; then
-        PRIMERS_FASTA="primers.fasta"
-        echo "✅ Primers extraídos correctamente a primers.fasta"
-    else
-        echo "❌ Error: No se pudieron extraer los primers. El archivo primers.fasta está vacío."
-    fi
-elif [ -n "$primer_bed_file" ] && [ "$primer_bed_file" != "none" ]; then
-    echo "❌ Error: No se encontró el archivo de primers .bed o el script de extracción."
-    echo "   BED file: $primer_bed_file"
-    echo "   Extractor script: $primer_extractor_script"
+primer_file_path=$4
+
+if [ -n "$primer_file_path" ] && [ "$primer_file_path" != "none" ] && [ -f "$primer_file_path" ]; then
+    echo "🧬 Usando archivo de primers proporcionado: $primer_file_path"
+    PRIMERS_FASTA="$primer_file_path"
+    echo "✅ Primers listos para ser usados."
+elif [ -n "$primer_file_path" ] && [ "$primer_file_path" != "none" ]; then
+    echo "❌ Error: No se pudo encontrar el archivo de primers en la ruta: $primer_file_path"
 fi
 
 # Función para buscar y procesar VCFs automáticamente
@@ -268,6 +263,14 @@ if [ "$sequence_type" == "NANO" ]; then
             echo "  "
             cd ..
             continue
+        fi
+
+        # Remoción de primers con cutadapt si están disponibles
+        if [ -n "$PRIMERS_FASTA" ] && [ -f "$muestra" ]; then
+            echo "🧬 Recortando primers con cutadapt..."
+            mv "$muestra" "${muestra}.original"
+            cutadapt -g file:"$PRIMERS_FASTA" -a file:"$PRIMERS_FASTA" -o "$muestra" "${muestra}.original" --minimum-length 50 -j $threads
+            rm "${muestra}.original"
         fi
 
         # Mapeo para Nanopore con multihilo
@@ -380,7 +383,7 @@ elif [ "$sequence_type" == "ILLUMINA" ]; then
                 R1_final="${sample_name}_R1_final_trimmed.fastq.gz"
                 R2_final="${sample_name}_R2_final_trimmed.fastq.gz"
 
-                cutadapt -g file:"../$PRIMERS_FASTA" -G file:"../$PRIMERS_FASTA" \
+                cutadapt -g file:"$PRIMERS_FASTA" -G file:"$PRIMERS_FASTA" \
                     -o "$R1_final" -p "$R2_final" \
                     "$R1_trimmed" "$R2_trimmed" \
                     --minimum-length 50 \

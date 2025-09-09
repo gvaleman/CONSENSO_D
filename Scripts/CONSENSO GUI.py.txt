@@ -13,6 +13,7 @@ import io
 
 # Importar la función de organización de FASTQ
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'Scripts'))
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__name__)), '..', 'Scripts'))
 try:
     from organizar_fastq import organizar_fastq
 except ImportError:
@@ -156,6 +157,7 @@ class ConsensoGUI:
     def configurar_icono(self):
         try:
             current_dir = os.path.dirname(os.path.abspath(__file__))
+            current_dir = os.path.dirname(os.path.abspath(__name__))
             ruta_icono = os.path.join(current_dir, '..', 'Resources', 'icon.png')
             icono_imagen = Image.open(ruta_icono)
             icono = ImageTk.PhotoImage(icono_imagen)
@@ -196,6 +198,7 @@ class ConsensoGUI:
     def agregar_logo(self, parent):
         try:
             current_dir = os.path.dirname(os.path.abspath(__file__))
+            current_dir = os.path.dirname(os.path.abspath(__name__))
             ruta_imagen = os.path.join(current_dir, '..', 'Resources', 'consenso logo.png')
             imagen = Image.open(ruta_imagen)
             # Redimensionar imagen si es necesario
@@ -304,7 +307,16 @@ class ConsensoGUI:
         form_frame = tk.Frame(self.panel_de_novo, bg="white")
         form_frame.pack(pady=20, padx=40, fill='x')
 
+        # Tipo de secuenciación
+        tk.Label(form_frame, text="Tipo de Secuenciación:", font=("Helvetica", 11, "bold"), bg="white").grid(row=0, column=0, sticky="w", pady=10)
+        opciones_denovo_display = list(self.opciones_denovo_map.keys())
+        self.denovo_sequence_type_var.set(opciones_denovo_display[0]) # Set default
+        tk.OptionMenu(form_frame, self.denovo_sequence_type_var, *opciones_denovo_display).grid(row=0, column=1, sticky="ew", padx=10)
+
         # Directorio
+        tk.Label(form_frame, text="Directorio de Datos:", font=("Helvetica", 11, "bold"), bg="white").grid(row=0, column=0, sticky="w", pady=10)
+        tk.Entry(form_frame, textvariable=self.ruta_var, width=40).grid(row=0, column=1, sticky="ew", padx=10)
+        tk.Button(form_frame, text="Buscar", command=self.buscar_directorio).grid(row=0, column=2, padx=10)
         tk.Label(form_frame, text="Directorio de Datos:", font=("Helvetica", 11, "bold"), bg="white").grid(row=1, column=0, sticky="w", pady=10)
         tk.Entry(form_frame, textvariable=self.ruta_var, width=40).grid(row=1, column=1, sticky="ew", padx=10)
         tk.Button(form_frame, text="Buscar", command=self.buscar_directorio).grid(row=1, column=2, padx=10)
@@ -320,12 +332,6 @@ class ConsensoGUI:
                                  font=("Helvetica", 12, "bold"),
                                  padx=20, pady=10)
         boton_de_novo.pack(pady=30)
-
-        # Opciones de tecnología de secuenciación
-        tk.Label(form_frame, text="Tecnología de Secuenciación:", font=("Helvetica", 11, "bold"), bg="white").grid(row=2, column=0, sticky="w", pady=10)
-        opciones_denovo_tech_display = ["illumina", "nanopore"]
-        self.denovo_sequence_type_var.set(opciones_denovo_tech_display[0]) # Set default
-        tk.OptionMenu(form_frame, self.denovo_sequence_type_var, *opciones_denovo_tech_display).grid(row=2, column=1, sticky="ew", padx=10)
 
     def crear_panel_ensamblaje(self):
         self.panel_ensamblaje = tk.Frame(self.content_frame, bg="white")
@@ -364,6 +370,7 @@ class ConsensoGUI:
 
         tk.Label(self.predefined_primer_frame, text="Protocolo:", font=("Helvetica", 10), bg="white").pack(side="left")
         current_dir = os.path.dirname(os.path.abspath(__file__))
+        current_dir = os.path.dirname(os.path.abspath(__name__))
         primer_dir = os.path.join(current_dir, '..', 'Primers')
         protocolos = [d for d in os.listdir(primer_dir) if os.path.isdir(os.path.join(primer_dir, d))]
         self.primer_protocol_menu = tk.OptionMenu(self.predefined_primer_frame, self.primer_protocol_var, *protocolos)
@@ -409,9 +416,10 @@ class ConsensoGUI:
 
     def buscar_custom_primer_file(self):
         archivo = filedialog.askopenfilename(
-            title="Seleccionar archivo de primers FASTA",
-            filetypes=[("FASTA files", "*.fasta *.fa"), ("All files", "*.*")]
+            title="Seleccionar archivo de primers",
+            filetypes=[("BED files", "*.bed"), ("All files", "*.*")]
         )
+            filetypes=[("BED files", "*.bed"), ("All files", "*.* אמיתי")])
         self.custom_primer_file_var.set(archivo)
 
     def crear_panel_variantes(self):
@@ -798,7 +806,7 @@ class ConsensoGUI:
                 return
 
             # Ajustar el nombre del virus para que coincida con el nombre del archivo
-            virus_filename = virus.replace('_', '') + ".fasta"
+            virus_filename = virus.replace('_', '') + ".bed"
             current_dir = os.path.dirname(os.path.abspath(__file__))
             primer_file_path = os.path.join(current_dir, '..', 'Primers', protocol, virus_filename)
 
@@ -921,10 +929,9 @@ class ConsensoGUI:
 
     def ejecutar_de_novo_ensamblaje(self):
         ruta = self.ruta_var.get()
-        sequence_type_value = self.denovo_sequence_type_var.get()
 
-        if not ruta or not sequence_type_value:
-            messagebox.showerror("Error", "Seleccione el directorio de datos y el tipo de secuenciación.")
+        if not ruta:
+            messagebox.showerror("Error", "Seleccione el directorio de datos.")
             return
 
         try:
@@ -982,7 +989,7 @@ class ConsensoGUI:
                             messagebox.showerror("Error", msg)
                         ventana_progreso.destroy()
 
-                command = ['bash', script_path, ruta, sequence_type_value]
+                command = ['bash', script_path, ruta]
                 proceso = subprocess.Popen(command,
                                            stdout=subprocess.PIPE,
                                            stderr=subprocess.STDOUT,
@@ -1062,6 +1069,8 @@ class ConsensoGUI:
 
                 # Restaurar stdout
                 sys.stdout = stdout_original
+
+                # Get output
                 output = salida.getvalue()
 
                 # Schedule GUI updates in the main thread
@@ -1189,3 +1198,4 @@ class ConsensoGUI:
 if __name__ == "__main__":
     app = ConsensoGUI()
     app.run()
+
