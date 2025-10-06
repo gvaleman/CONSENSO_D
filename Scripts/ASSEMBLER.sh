@@ -95,45 +95,53 @@ esac
 # Verificar si la clasificación está disponible para este serotipo
 if [[ "$serotype" =~ ^DENV_[1-4]$ ]] && [ -f "$model_path" ] && [ -f "$encoder_path" ] && [ -f "$classifier_script" ]; then
     classification_available=true
-    echo "🧬 Clasificación de linajes disponible para $serotype"
+    echo "Clasificacion de linajes disponible para $serotype"
 else
     if [[ "$serotype" =~ ^DENV_[1-4]$ ]]; then
-        echo "ℹ️  Clasificación no disponible para $serotype"
+        echo "Clasificacion no disponible para $serotype"
         if [ ! -f "$model_path" ]; then
-            echo "   ❌ Modelo no encontrado: $(basename "$model_path")"
+            echo "   Modelo no encontrado: $(basename "$model_path")"
         fi
         if [ ! -f "$encoder_path" ]; then
-            echo "   ❌ Encoder no encontrado: $(basename "$encoder_path")"
+            echo "   Encoder no encontrado: $(basename "$encoder_path")"
         fi
         if [ ! -f "$classifier_script" ]; then
-            echo "   ❌ Script clasificador no encontrado: $(basename "$classifier_script")"
+            echo "   Script clasificador no encontrado: $(basename "$classifier_script")"
         fi
     fi
 fi
 
-echo "-----------------------------"
-sleep 0.3
-echo "-- --"
-sleep 0.3
-echo "-- --"
-sleep 0.3
-echo "-- ENSAMBLANDO --"
-sleep 0.3
-echo "-- --"
-echo "-- $serotype --"
-sleep 0.3
-echo "-- --"
+#Imprimiendo mensajes en la terminal
+# Colores
+CYAN="\e[36m"
+YELLOW="\e[33m"
+GREEN="\e[32m"
+RED="\e[31m"
+WHITE="\e[97m"
+GRAY="\e[90m"
+BOLD="\e[1m"
+RESET="\e[0m"
+
+echo -e "${CYAN}===========================================${RESET}"
+echo -e "${BOLD}${WHITE}  CONSENSO ${GRAY}v0.05-beta${RESET}"
+echo -e "${CYAN}===========================================${RESET}"
+echo ""
+echo -e "  ${BOLD}Ensamblando${RESET}"
+echo -e "  Virus: ${WHITE}${BOLD}${virus}${RESET}"
+
+[ -n "$serotype" ] && echo -e "  Serotipo: ${YELLOW}${BOLD}${serotype}${RESET}"
+
 if [ "$classification_available" = true ]; then
-echo "-- CON CLASIFICACIÓN --"
+  echo -e "  Clasificación de linaje: ${GREEN}${BOLD}Disponible${RESET}"
+else
+  echo -e "  Clasificación de linaje: ${RED}${BOLD}No disponible${RESET}"
 fi
-sleep 0.3
-echo "-- --"
-sleep 0.3
-echo "-----------------------------"
-sleep 1
-echo "-- Instituto De ciencias Sostenibles --"
-sleep 0.1
-echo "------------------------------------------"
+
+echo ""
+echo -e "${CYAN}-------------------------------------------${RESET}"
+echo -e "  ${GRAY}Instituto De Ciencias Sostenibles${RESET}"
+echo -e "${CYAN}===========================================${RESET}"
+
 
 if [ ! -d "$dir" ]; then
     echo "No se puede acceder al directorio: $dir"
@@ -159,11 +167,11 @@ PRIMERS_FASTA=""
 primer_file_path=$4
 
 if [ -n "$primer_file_path" ] && [ "$primer_file_path" != "none" ] && [ -f "$primer_file_path" ]; then
-    echo "🧬 Usando archivo de primers proporcionado: $primer_file_path"
+    echo "Usando archivo de primers proporcionado: $primer_file_path"
     PRIMERS_FASTA="$primer_file_path"
-    echo "✅ Primers listos para ser usados."
+    echo "Primers listos para ser usados."
 elif [ -n "$primer_file_path" ] && [ "$primer_file_path" != "none" ]; then
-    echo "❌ Error: No se pudo encontrar el archivo de primers en la ruta: $primer_file_path"
+    echo "Error: No se pudo encontrar el archivo de primers en la ruta: $primer_file_path"
 fi
 
 # Función para buscar y procesar VCFs automáticamente
@@ -172,14 +180,14 @@ run_batch_classification() {
 
     if [ "$classification_available" = true ]; then
         echo ""
-        echo "🧬 BUSCANDO VCFs PARA CLASIFICACIÓN BATCH..."
+        echo "BUSCANDO VCFs PARA CLASIFICACION BATCH..."
 
         # Definir el nombre del archivo de log para la clasificación
         log_file="$working_dir/Lineage_Classification/classification.log"
         output_file="$working_dir/Lineage_Classification/batch_${serotype}_classifications.csv"
 
         # Ejecutar el clasificador en modo batch y redirigir la salida al log
-        echo "Iniciando clasificación. Logs guardados en: $(basename "$log_file")"
+        echo "Iniciando clasificacion. Logs guardados en: $(basename "$log_file")"
 
         # CAMBIO CRUCIAL: Usar --search-dir en lugar de --vcf-dir y pasar el directorio de trabajo
         python3 "$classifier_script" \
@@ -193,30 +201,30 @@ run_batch_classification() {
         classification_success=$?
 
         if [ $classification_success -eq 0 ]; then
-            echo "✅ Clasificación batch completada exitosamente"
-            echo "   📊 Resultados guardados en: $(basename "$output_file")"
+            echo "Clasificacion batch completada exitosamente"
+            echo "   Resultados guardados en: $(basename "$output_file")"
 
             # Mostrar resumen rápido si el archivo existe
             if [ -f "$output_file" ]; then
                 echo ""
-                echo "📋 RESUMEN RÁPIDO DE CLASIFICACIONES:"
+                echo "RESUMEN RAPIDO DE CLASIFICACIONES:"
                 echo "   Total de muestras procesadas: $(tail -n +2 "$output_file" | wc -l)"
 
                 # Resumen por linajes
-                echo "   Distribución por linajes:"
+                echo "   Distribucion por linajes:"
                 tail -n +2 "$output_file" | cut -d',' -f3 | sort | uniq -c | sort -nr | head -5 | while read count lineage; do
                     echo "      $lineage: $count muestra(s)"
                 done
 
                 # Resumen por confianza
-                echo "   Distribución por confianza:"
+                echo "   Distribucion por confianza:"
                 tail -n +2 "$output_file" | cut -d',' -f4 | sort | uniq -c | sort -nr | while read count confidence; do
                     echo "      $confidence: $count muestra(s)"
                 done
             fi
         else
-            echo "❌ Error en la clasificación batch"
-            echo "   🔍 Para más detalles, revise el log: $log_file"
+            echo "Error en la clasificacion batch"
+            echo "   Para mas detalles, revise el log: $log_file"
         fi
 
         return $classification_success
@@ -243,12 +251,12 @@ if [ "$sequence_type" == "NANO" ]; then
             printf '%s\n' "Descomprimiendo..."
             cat $(ls *.fastq.gz) > "${sample_name}.fastq.gz"
             gzip -df "${sample_name}.fastq.gz"
-            printf '%s\n' "Descompresión realizada con éxito"
+            printf '%s\n' "Descompresion realizada con exito"
             muestra=$(ls *.fastq)
         elif ls *.fastq 1> /dev/null 2>&1; then
             echo "Procesando archivo : $(basename "$file")"
             echo "----------------------------------------------------------------------------"
-            echo "⚠  Archivos .fastq ya descomprimidos en la carpeta \"$(basename "$file")\". Continuando y sobrescribiendo...  ⚠"
+            echo "Archivos .fastq ya descomprimidos en la carpeta \"$(basename "$file")\". Continuando y sobrescribiendo..."
             echo "----------------------------------------------------------------------------"
             muestra=$(ls *.fastq)
         else
@@ -259,7 +267,7 @@ if [ "$sequence_type" == "NANO" ]; then
             printf '%s\n' "-----------------------------------------------------"
             printf '%s\n' " "
             echo "  "
-            echo "⚠  No se encontraron archivos fastq.gz ni .fastq en la carpeta \"$(basename "$file")\"  ⚠"
+            echo "No se encontraron archivos fastq.gz ni .fastq en la carpeta \"$(basename "$file")\""
             echo "  "
             cd ..
             continue
@@ -267,7 +275,7 @@ if [ "$sequence_type" == "NANO" ]; then
 
         # Remoción de primers con cutadapt si están disponibles
         if [ -n "$PRIMERS_FASTA" ] && [ -f "$muestra" ]; then
-            echo "🧬 Recortando primers con cutadapt..."
+            echo "Recortando primers con cutadapt..."
             mv "$muestra" "${muestra}.original"
             cutadapt -g file:"$PRIMERS_FASTA" -a file:"$PRIMERS_FASTA" -o "$muestra" "${muestra}.original" --minimum-length 50 -j $threads
             rm "${muestra}.original"
@@ -302,8 +310,8 @@ if [ "$sequence_type" == "NANO" ]; then
         # Generar gráfico de cobertura con gnuplot
         echo "set terminal png size 1200,600
          set output '${sample_name}_coverage_plot.png'
-         set title 'Cobertura de secuenciación para ${sample_name}'
-         set xlabel 'Posición en el genoma'
+         set title 'Cobertura de secuenciacion para ${sample_name}'
+         set xlabel 'Posicion en el genoma'
          set ylabel 'Profundidad de cobertura'
          set grid
          plot '${sample_name}.coverage' using 2:3 with lines linecolor rgb 'blue' title 'Cobertura'" > coverage_plot.gnuplot
@@ -315,8 +323,8 @@ if [ "$sequence_type" == "NANO" ]; then
         # Generar archivo VCF y secuencia consenso con multihilo
         bcftools mpileup -Ou -f "$fasta_file" Output.sorted.bam | bcftools call -c -Oz -o "${sample_name}_calls.vcf.gz"
         bcftools norm -f "$fasta_file" "${sample_name}_calls.vcf.gz" -Oz -o "${sample_name}_normalized.vcf.gz"
-        bcftools view -i 'QUAL>8' "${sample_name}_normalized.vcf.gz" | vcfutils.pl vcf2fq > SAMPLE_cns.fastq
-        seqtk seq -aQ64 -q08 -n N SAMPLE_cns.fastq > SAMPLE_cns.fasta
+        bcftools view -i 'QUAL10>' "${sample_name}_normalized.vcf.gz" | vcfutils.pl vcf2fq > SAMPLE_cns.fastq
+        seqtk seq -aQ64 -q10 -n N SAMPLE_cns.fastq > SAMPLE_cns.fasta
         echo ">${sample_name}" > "${sample_name}.fasta"
         tail -n +2 SAMPLE_cns.fasta >> "${sample_name}.fasta"
 
@@ -407,7 +415,7 @@ elif [ "$sequence_type" == "ILLUMINA" ]; then
             samtools sort -@ $threads Output_${sample_name}.aln.bam -o Output_${sample_name}.sorted.bam
             samtools index Output_${sample_name}.sorted.bam
 
-            # CRUCIAL: Verificar si el archivo BAM no está vacío antes de continuar.
+            # Verificar si el archivo BAM no está vacío antes de continuar.
             if [ -s "Output_${sample_name}.sorted.bam" ]; then
                 printf '%s\n' "      "
                 printf '%s\n' "Verificando calidad del mapeo..."
@@ -427,33 +435,41 @@ elif [ "$sequence_type" == "ILLUMINA" ]; then
                 # Generar gráfico de cobertura con gnuplot (igual que en Nanopore)
                 echo "set terminal png size 1200,600
                  set output '${sample_name}_coverage_plot.png'
-                 set title 'Cobertura de secuenciación para ${sample_name}'
-                 set xlabel 'Posición en el genoma'
+                 set title 'Cobertura de secuenciacion para ${sample_name}'
+                 set xlabel 'Posicion en el genoma'
                  set ylabel 'Profundidad de cobertura'
                  set grid
                  plot '${sample_name}.coverage' using 2:3 with lines linecolor rgb 'blue' title 'Cobertura'" > coverage_plot.gnuplot
 
                 gnuplot coverage_plot.gnuplot
 
+                # ========== SECCIÓN CORREGIDA ==========
                 printf '%s\n' "      "
                 printf '%s\n' "::::::::::CREANDO SECUENCIA CONSENSO::::::::::::"
-                # Generar archivo VCF y secuencia consenso con multihilo - MANTENIENDO QUAL>30 del Script 2
-                bcftools mpileup -Ou -f "$fasta_file" Output_${sample_name}.sorted.bam | bcftools call -c -Oz -o "${sample_name}_calls.vcf.gz"
-                bcftools norm -f "$fasta_file" "${sample_name}_calls.vcf.gz" -Oz -o "${sample_name}_normalized.vcf.gz"
-                #bcftools view -i 'QUAL>30' "${sample_name}_normalized.vcf.gz" | vcfutils.pl vcf2fq > SAMPLE_${sample_name}_cns.fastq
-                bcftools view "${sample_name}_normalized.vcf.gz" | vcfutils.pl vcf2fq > SAMPLE_${sample_name}_cns.fastq
-                #seqtk seq -aQ64 -q30 -n N SAMPLE_${sample_name}_cns.fastq > SAMPLE_${sample_name}_cns.fasta
-                seqtk seq -aQ64 -n N SAMPLE_${sample_name}_cns.fastq > SAMPLE_${sample_name}_cns.fasta
+                
+                # Generar VCF y normalizar (UNA SOLA VEZ)
+                bcftools mpileup -Ou -f "$fasta_file" Output_${sample_name}.sorted.bam | \
+                    bcftools call -c -Oz -o "${sample_name}_calls.vcf.gz"
+                
+                bcftools norm -f "$fasta_file" "${sample_name}_calls.vcf.gz" \
+                    -Oz -o "${sample_name}_normalized.vcf.gz"
+                
+                # Filtrar QUAL>30 y convertir a consenso (SIN -o, usando pipe directo)
+                bcftools view -i 'QUAL>30' "${sample_name}_normalized.vcf.gz" | \
+                    vcfutils.pl vcf2fq | \
+                    seqtk seq -aQ64 -q30 -n N > SAMPLE_${sample_name}_cns.fasta
+                
+                # Crear archivo final (SIN duplicar contenido)
                 echo ">${sample_name}" > "${sample_name}.fasta"
                 tail -n +2 SAMPLE_${sample_name}_cns.fasta >> "${sample_name}.fasta"
-
+                # ========== FIN SECCIÓN CORREGIDA ==========
 
                 # Copiar informes de calidad al directorio principal
                 cp -r "${sample_name}_plots" "../QC_Reports/${sample_name}_plots" 2>/dev/null || true
                 cp -r "${sample_name}_qc_report" "../QC_Reports/${sample_name}_qc_report" 2>/dev/null || true
                 cp "${sample_name}_coverage_plot.png" "../QC_Reports/${sample_name}_coverage_plot.png" 2>/dev/null || true
             else
-                echo "⚠ WARNING: Output BAM file is empty for sample $sample_name. Skipping consensus generation."
+                echo "WARNING: Output BAM file is empty for sample $sample_name. Skipping consensus generation."
             fi
 
             # Limpiar archivos temporales pero mantener los importantes
@@ -469,7 +485,7 @@ elif [ "$sequence_type" == "ILLUMINA" ]; then
     done < <(find . -type d -mindepth 1 -maxdepth 1 -print0)
 
 else
-    echo "Tipo de secuenciación no válido. Use 'NANO' o 'ILLUMINA'."
+    echo "Tipo de secuenciacion no valido. Use 'NANO' o 'ILLUMINA'."
     exit 1
 fi
 
@@ -489,51 +505,65 @@ multiqc -f -o "QC_Reports/Final_QC_Report_$serotype" QC_Reports/
 rm -f adapters.fasta primers.fasta 2>/dev/null
 
 #Informe
-echo "*****************************************"   # ✅ Correcto
-echo "****       GENERANDO INFORME         ****"   # ✅ Correcto
-echo "*****************************************"   # ✅ Correcto
+echo "*****************************************"
+echo "****       GENERANDO INFORME         ****"
+echo "*****************************************"
 
 python3 "$current_dir/CONSENSO_D/Scripts/quality_report.py" "$dir"
 if [ $? -eq 0 ]; then
-    echo "✅ Informe guardado en: $(pwd)/reporte_calidad.html"
+    echo "Informe guardado en: $(pwd)/reporte_calidad.html"
 else
-    echo "❌ Error generando el informe"
+    echo "Error generando el informe"
 fi
 
+#Mensaje de finalización
+# Definir colores
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+MAGENTA='\033[0;35m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
 
-echo " ____ ____ ___ __ ___ _____ ___
-| | \ / \ / ] / ]/ / / \
-| o ) D ) | / / / [( _ | |
-| /| /| O |/ / | ]_ || O |
-| | | | / _ | [ / \ || |
-| | | . \ \ || |\ || |
-|| ||_|_/ _||_| _| ___/
+cat << EOF
 
-| || || \ / || | | || | / || \ / \
-| | | | | _ || o || | | | |/ || o || \ | |
-| |_ | | | | || || |___ | | | || || D || O |
-| _] | | | | || _ || | | | | / || _ || || |
-| | | | | | || | || | | | | || |
-|| || |
-|| |||||||||||||_____||||_|||||___| _/
+    ${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}
+    ${GREEN}║                                                           ║${NC}
+    ${GREEN}║${NC}              ${BOLD}${CYAN}✓  P R O C E S O   C O M P L E T O${NC}          ${GREEN}║${NC}
+    ${GREEN}║                                                           ║${NC}
+    ${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}
 
-"
-echo "Se ha generado un archivo multi-fasta llamado: "
-echo " --> all_consensus_$serotype.fasta"
-echo " en la ubicación: $dir "
+EOF
+
+echo -e "    ${CYAN}📊 RESULTADOS${NC}"
+echo -e "    ${BLUE}─────────────────────────────────────────────────────────${NC}"
+echo -e "       ${YELLOW}Consenso multi-fasta:${NC} all_consensus_${serotype}.fasta"
+echo -e "       ${YELLOW}Ubicación:${NC} $dir"
 echo ""
-echo "Los informes de calidad están disponibles en: $dir/QC_Reports/"
-echo "Informe final combinado: $dir/QC_Reports/Final_QC_Report_$serotype"
+echo -e "    ${CYAN}📁 CALIDAD${NC}"
+echo -e "    ${BLUE}─────────────────────────────────────────────────────────${NC}"
+echo -e "       ${YELLOW}Reportes por muestra:${NC} QC_Reports/"
+echo -e "       ${YELLOW}Reporte consolidado:${NC} Final_QC_Report_${serotype}"
+echo -e "       ${YELLOW}Dashboard interactivo:${NC} reporte_calidad.html"
+echo ""
 
 if [ "$classification_available" = true ]; then
-    echo ""
-    echo "🧬 Los resultados de clasificación están disponibles en: $dir/Lineage_Classification/"
+    echo -e "    ${CYAN}🧬 LINAJES${NC}"
+    echo -e "    ${BLUE}─────────────────────────────────────────────────────────${NC}"
     if [ -f "$dir/Lineage_Classification/batch_${serotype}_classifications.csv" ]; then
-        echo "📊 Clasificación automática: $dir/Lineage_Classification/batch_${serotype}_classifications.csv"
-        echo "📄 Log de clasificación: $dir/Lineage_Classification/classification.log"
+        echo -e "       ${YELLOW}Clasificaciones:${NC} batch_${serotype}_classifications.csv"
+        echo -e "       ${YELLOW}Log:${NC} classification.log"
     fi
+    echo ""
 fi
 
+echo -e "    ${CYAN}📝 LOGS:${NC} CONSENSO_log.txt"
+echo ""
+echo -e "    ${GREEN}═══════════════════════════════════════════════════════════${NC}"
+echo -e "     ${BOLD}Finalizado:${NC} ${MAGENTA}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
+echo -e "    ${GREEN}═══════════════════════════════════════════════════════════${NC}"
+echo ""
 
 # Guardar los logs en el log file
 # Definir el nombre del archivo de log final
@@ -542,9 +572,10 @@ FINAL_LOG_NAME="CONSENSO_log.txt"
 # Guardar los logs en el log file
 if [ -f "$LOG_FILE_TEMP" ]; then
     mv "$LOG_FILE_TEMP" "$dir/$FINAL_LOG_NAME"
-    echo "✅ Log movido a: $dir/$FINAL_LOG_NAME"
+    echo -e "${GREEN}✓${NC} Log movido a: ${YELLOW}$dir/$FINAL_LOG_NAME${NC}"
+fi
 
-
-echo "✅ El pipeline ha finalizado exitosamente."
-echo "Los registros completos del proceso se guardaron en:"
-echo "$dir/CONSENSO_log.txt"
+echo ""
+echo -e "${GREEN}✓${NC} El pipeline ha finalizado exitosamente."
+echo -e "Los registros completos del proceso se guardaron en:"
+echo -e "${YELLOW}$dir/CONSENSO_log.txt${NC}"
