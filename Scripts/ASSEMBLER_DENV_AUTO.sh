@@ -124,9 +124,9 @@ classify_serotype_automatically() {
     local R2_for_mapping="$3"
     local muestra="$4"  # Para Nanopore
 
-    echo ""
-    echo -e "${CYAN}🔍 CLASIFICACIÓN AUTOMÁTICA DE SEROTIPOS${RESET}"
-    echo "   Analizando muestra: $sample_name"
+    echo "" >&2
+    echo -e "${CYAN}🔍 CLASIFICACIÓN AUTOMÁTICA DE SEROTIPOS${RESET}" >&2
+    echo "   Analizando muestra: $sample_name" >&2
 
     # Crear archivo de métricas
     echo "Serotipo,Cobertura_Porcentaje,Profundidad_Promedio,Lecturas_Mapeadas,Posiciones_Cubiertas" > "${sample_name}_serotype_metrics.csv"
@@ -140,11 +140,11 @@ classify_serotype_automatically() {
         ref_file="${REFERENCES[$serotype]}"
 
         if [ ! -f "$ref_file" ]; then
-            echo "   ⚠️  Referencia no encontrada para $serotype: $ref_file"
+            echo "   ⚠️  Referencia no encontrada para $serotype: $ref_file" >&2
             continue
         fi
 
-        echo "   Mapeando contra $serotype..."
+        echo "   Mapeando contra $serotype..." >&2
 
         # Mapeo según tipo de secuenciación
         if [ "$sequence_type" == "ILLUMINA" ]; then
@@ -198,15 +198,15 @@ classify_serotype_automatically() {
 
                 echo "$serotype,$coverage_percentage,$avg_depth,$mapped_count,$covered_positions" >> "${sample_name}_serotype_metrics.csv"
 
-                echo "     $serotype: ${coverage_percentage}% cobertura, profundidad: ${avg_depth}x, lecturas: $mapped_count"
+                echo "     $serotype: ${coverage_percentage}% cobertura, profundidad: ${avg_depth}x, lecturas: $mapped_count" >&2
             else
-                echo "     $serotype: Sin cobertura"
+                echo "     $serotype: Sin cobertura" >&2
                 echo "$serotype,0,0,0,0" >> "${sample_name}_serotype_metrics.csv"
             fi
 
             rm -f "$depth_file"
         else
-            echo "     $serotype: Sin mapeo"
+            echo "     $serotype: Sin mapeo" >&2
             echo "$serotype,0,0,0,0" >> "${sample_name}_serotype_metrics.csv"
         fi
 
@@ -275,11 +275,11 @@ classify_serotype_automatically() {
     } > "$classification_file"
 
     # Mostrar y devolver resultados
-    echo ""
+    echo "" >&2
     if [ "$coinfection_detected" = true ] && [ -n "$coinfection_serotypes" ]; then
-        echo -e "   ${RED}⚠️  POSIBLE CO-INFECCIÓN: $coinfection_serotypes${RESET}"
-        echo -e "   ${YELLOW}📊 Cobertura mejor serotipo: ${best_coverage}% (${best_serotype})${RESET}"
-        echo -e "   ${YELLOW}🎯 Confianza: $classification_confidence${RESET}"
+        echo -e "   ${RED}⚠️  POSIBLE CO-INFECCIÓN: $coinfection_serotypes${RESET}" >&2
+        echo -e "   ${YELLOW}📊 Cobertura mejor serotipo: ${best_coverage}% (${best_serotype})${RESET}" >&2
+        echo -e "   ${YELLOW}🎯 Confianza: $classification_confidence${RESET}" >&2
 
         cp "$classification_file" "../Serotype_Classification/${sample_name}_serotype_classification.txt"
         cp "${sample_name}_serotype_metrics.csv" "../Serotype_Classification/${sample_name}_serotype_metrics.csv"
@@ -287,9 +287,9 @@ classify_serotype_automatically() {
         echo "$coinfection_serotypes" | tr '+' ' '
         return 0
     elif [ -n "$best_serotype" ] && (( $(echo "$best_coverage >= 50" | bc -l) )); then
-        echo -e "   ${GREEN}✅ SEROTIPO DETECTADO: ${BOLD}$best_serotype${RESET}"
-        echo -e "   ${YELLOW}📊 Cobertura: ${best_coverage}%${RESET}"
-        echo -e "   ${YELLOW}🎯 Confianza: $classification_confidence${RESET}"
+        echo -e "   ${GREEN}✅ SEROTIPO DETECTADO: ${BOLD}$best_serotype${RESET}" >&2
+        echo -e "   ${YELLOW}📊 Cobertura: ${best_coverage}%${RESET}" >&2
+        echo -e "   ${YELLOW}🎯 Confianza: $classification_confidence${RESET}" >&2
 
         cp "$classification_file" "../Serotype_Classification/${sample_name}_serotype_classification.txt"
         cp "${sample_name}_serotype_metrics.csv" "../Serotype_Classification/${sample_name}_serotype_metrics.csv"
@@ -297,8 +297,8 @@ classify_serotype_automatically() {
         echo "$best_serotype"
         return 0
     else
-        echo -e "   ${RED}❌ NO SE PUDO DETERMINAR SEROTIPO${RESET}"
-        echo -e "   ${YELLOW}📊 Mejor cobertura: ${best_coverage}% ($best_serotype)${RESET}"
+        echo -e "   ${RED}❌ NO SE PUDO DETERMINAR SEROTIPO${RESET}" >&2
+        echo -e "   ${YELLOW}📊 Mejor cobertura: ${best_coverage}% ($best_serotype)${RESET}" >&2
 
         cp "$classification_file" "../Serotype_Classification/${sample_name}_serotype_classification.txt"
         cp "${sample_name}_serotype_metrics.csv" "../Serotype_Classification/${sample_name}_serotype_metrics.csv"
@@ -366,18 +366,22 @@ run_lineage_classification() {
 
 # PROCESAMIENTO PRINCIPAL
 if [ "$sequence_type" == "NANO" ]; then
+    echo "Contando muestras..." >&2
+    num_samples=$(find . -type d -mindepth 1 -maxdepth 1 | wc -l)
+    current_sample=0
     for file in $(ls -d */); do
+        current_sample=$((current_sample + 1))
         cd "$file" || continue
         sample_name=${PWD##*/}
 
         if ls *.fastq.gz 1> /dev/null 2>&1; then
-            echo -e "${BOLD}Procesando muestra: $sample_name${RESET}"
+            echo -e "${BOLD}Procesando muestra $current_sample/$num_samples: $sample_name${RESET}"
             echo "----"
             cat $(ls *.fastq.gz) > "${sample_name}.fastq.gz"
             gzip -df "${sample_name}.fastq.gz"
             muestra=$(ls *.fastq)
         elif ls *.fastq 1> /dev/null 2>&1; then
-            echo -e "${BOLD}Procesando muestra: $sample_name${RESET}"
+            echo -e "${BOLD}Procesando muestra $current_sample/$num_samples: $sample_name${RESET}"
             echo "----"
             muestra=$(ls *.fastq)
         else
@@ -462,14 +466,18 @@ plot '${sample_name}_${detected_serotype}.coverage' using 2:3 with lines linecol
     done
 
 elif [ "$sequence_type" == "ILLUMINA" ]; then
+    echo "Contando muestras..." >&2
+    num_samples=$(find . -type d -mindepth 1 -maxdepth 1 -print0 | tr -d -c '\0' | wc -c)
+    current_sample=0
     while IFS= read -r -d '' sample_dir; do
+        current_sample=$((current_sample + 1))
         cd "$sample_dir" || continue
         R1_file=$(find . -maxdepth 1 -name '*_R1_001.fastq.gz' -print -quit)
         R2_file=$(find . -maxdepth 1 -name '*_R2_001.fastq.gz' -print -quit)
 
         if [ -n "$R1_file" ] && [ -n "$R2_file" ]; then
             sample_name=$(basename "$R1_file" "_R1_001.fastq.gz")
-            echo -e "${BOLD}Procesando muestra: $sample_name${RESET}"
+            echo -e "${BOLD}Procesando muestra $current_sample/$num_samples: $sample_name${RESET}"
             echo "----"
 
             mkdir -p fastqc_results
@@ -609,7 +617,13 @@ echo -e "${CYAN}📊 GENERANDO REPORTES FINALES${RESET}"
 
 # Generar archivo multifasta con todos los consensos
 echo "Consolidando secuencias consenso..."
-cat $(find . -name "*.fasta" -path "./*/") > "all_consensus_AUTO.fasta" 2>/dev/null || true
+fasta_files=$(find . -maxdepth 2 -name "*.fasta" -type f)
+if [ -n "$fasta_files" ]; then
+    cat $fasta_files > "all_consensus_AUTO.fasta"
+else
+    echo "No consensus files found to concatenate." >&2
+    touch "all_consensus_AUTO.fasta"
+fi
 
 # Generar resumen de clasificaciones de serotipos
 echo "Generando resumen de clasificaciones..."
@@ -631,6 +645,31 @@ echo "Generando resumen de clasificaciones..."
 
 # Generar informe final con MultiQC
 multiqc -f -o "QC_Reports/Final_QC_Report_AUTO" QC_Reports/ Serotype_Classification/ Lineage_Classification/
+
+# Consolidar reportes y logs de linajes
+echo "Consolidando reportes de linajes..." >&2
+FINAL_LINEAGE_CSV="Lineage_Classification/lineage_classifications.csv"
+FINAL_LINEAGE_LOG="Lineage_Classification/lineage_classification.log"
+
+# Consolidate CSVs
+{
+    header_file=$(find Lineage_Classification -name "*_classification.csv" -print -quit)
+    if [ -n "$header_file" ] && [ -s "$header_file" ]; then
+        head -n 1 "$header_file"
+        find Lineage_Classification -name "*_classification.csv" -exec tail -q -n +2 {} +
+    else
+        echo "Sample,Serotype,Lineage,Confidence"
+    fi
+} > "$FINAL_LINEAGE_CSV"
+
+# Consolidate Logs
+echo "Consolidando logs de linajes..." >&2
+cat Lineage_Classification/*_classification.log > "$FINAL_LINEAGE_LOG" 2>/dev/null || true
+
+# Cleanup intermediate files
+echo "Limpiando archivos intermedios de linaje..." >&2
+rm -f Lineage_Classification/*_classification.csv
+rm -f Lineage_Classification/*_classification.log
 
 # Limpiar archivos temporales
 rm -f adapters.fasta primers.fasta 2>/dev/null
@@ -664,7 +703,9 @@ echo -e "    ${YELLOW}Reporte consolidado:${NC} Final_QC_Report_AUTO/"
 echo ""
 echo -e "    ${CYAN}🧬 LINAJES${NC}"
 echo -e "    ${BLUE}─────────${NC}"
-echo -e "    ${YELLOW}Clasificaciones:${NC} Lineage_Classification/"
+echo -e "    ${YELLOW}Reporte de clasificación:${NC} lineage_classifications.csv"
+echo -e "    ${YELLOW}Log de clasificación:${NC} lineage_classification.log"
+echo -e "    ${YELLOW}Ubicación:${NC} Lineage_Classification/"
 echo ""
 
 # Mostrar estadísticas finales

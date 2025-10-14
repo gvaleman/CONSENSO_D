@@ -446,19 +446,19 @@ elif [ "$sequence_type" == "ILLUMINA" ]; then
                 # ========== SECCIÓN CORREGIDA ==========
                 printf '%s\n' "      "
                 printf '%s\n' "::::::::::CREANDO SECUENCIA CONSENSO::::::::::::"
-                
+
                 # Generar VCF y normalizar (UNA SOLA VEZ)
                 bcftools mpileup -Ou -f "$fasta_file" Output_${sample_name}.sorted.bam | \
                     bcftools call -c -Oz -o "${sample_name}_calls.vcf.gz"
-                
+
                 bcftools norm -f "$fasta_file" "${sample_name}_calls.vcf.gz" \
                     -Oz -o "${sample_name}_normalized.vcf.gz"
-                
+
                 # Filtrar QUAL>30 y convertir a consenso (SIN -o, usando pipe directo)
                 bcftools view -i 'QUAL>30' "${sample_name}_normalized.vcf.gz" | \
                     vcfutils.pl vcf2fq | \
                     seqtk seq -aQ64 -q30 -n N > SAMPLE_${sample_name}_cns.fasta
-                
+
                 # Crear archivo final (SIN duplicar contenido)
                 echo ">${sample_name}" > "${sample_name}.fasta"
                 tail -n +2 SAMPLE_${sample_name}_cns.fasta >> "${sample_name}.fasta"

@@ -1,14 +1,22 @@
 # CONSENSO_D
 CONSENSO_D es un conjunto de scripts diseñado por el equipo de secuenciación y genómica del Instituto de Ciencias Sostenibles de Nicaragua con la finalidad de mapear, ensamblar y generar secuencias consenso de los 4 serotipos de Dengue y del virus de la Rabia a partir de archivos fastq de secuenciadores NANOPORE.
 
+*Notar que CONSENSO_D está actualmente bajo desarollo activo. Esto significa que el formato de los datos, interfaz gráfica y funcionalidades estan evolucionando y estan propensas a cambiar con el tiempo para mejorar todo el sistema. Los procesos de generación de secuencias consenso se mantienen completamente funcionales y pueden ser utilizados con confianza.
+
 CONSENSO_D usa multiples Scripts python y Bash que permiten realizar diferentes tareas:
 
   - Interfaz grafica intuitiva para manejar todos los procesos
   - Ensamblaje de Genomas del los 4 serotipos del dengue, Virus de la Rabia y el SARS CoV 2
+  - Ensamblaje automático de los virus del dengue (sin especificar una referencia)
   - Permite realizar ensamblaje de plataformas Nanopore e Illumina
-  - Realiza control de calidad de las secuencias mediante fastWC y Multi QC
-  - Realiza determinacion de linajes del virus del dengue bajo la nomenclatura Dengue-Lineages, implementando un modelo Random Forest de Aprendizaje automatico para clasificar los linajes (https://github.com/gvaleman/Viral-Branch)
+  - Realiza control de calidad de las secuencias mediante los paquetes fastQC y Multi QC
+  - Realiza determinacion de linajes del virus del dengue bajo la nomenclatura Dengue-Lineages, implementando un modelo Random Forest de Aprendizaje automatico para
+  - Clasificar los linajes (https://github.com/gvaleman/Viral-Branch)
   - Determinación de mutaciones para los serotipos del dengue
+
+Dependencias:
+  - Miniconda3: CONSENSO_D trabaja con un entorno de Anaconda. Si no conoce como instalar Anaconda puede revisar su pagina web (https://www.anaconda.com/docs/getting-started/miniconda/install#linux-terminal-installer)
+  - git: El repositorio de CONSENSO debe ser clonado a un repositorio local en su computadora mediante git.
 
 Configurando CONSENSO
 
@@ -19,46 +27,43 @@ En la terminal ejecutar el siguientes comando
 cd
 git clone https://github.com/gvaleman/CONSENSO_D.git
 ```
-para la configuración, es necesario tener instalado Miniconda3. Es necesario activar un ambiente conda de la siguiente manera
+Instalar un ambiente conda de la siguiente manera 
+
 ```
 cd # sale a la carpeta home
 cd CONSENSO_D # entrar a la carpeta de CONSENSO
 conda env create -f environment.yml
 ```
-Despues, solo hay que esperar a que se realice la instalación del entorno para iniciar a utilizar CONSENSO.
+Esperar mientras se realiza la instalación del entorno para iniciar a utilizar CONSENSO. El tiempo de instalación del ambiente dependerá de la velocidad y/o estabilidad del internet y de las caracteristicas de la computadora donde se esté instalando. 
+Una vez instalado el ambiente, CONSENSO está listo para su uso.
 
 # USANDO CONSENSO
 INSTRUCCIONES:
+- Activar el entorno CONSENSO_D
 - Acceder a la carpeta CONSENSO_D y entrar a la carpeta bin.
-- Abrir una terminal y ejecutar el Script CONSENSO.py. esto se puede hacer de la siguiente manera abriendo una terminal
+- Abrir una terminal y ejecutar el Script CONSENSO.py. Esto se puede hacer de la siguiente manera abriendo una terminal
   ```
   cd # sale a la carpeta home
   cd CONSENSO_D # entrar a la carpeta de CONSENSO
   cd bin #entrar a la carpeta bin
-  python3 CONSENSO.py -- gui #Ejecutar el Script
+  conda activate CONSENSO_D #activar el entorno antes de iniciar la aplicación
+  python3 CONSENSO.py -- gui #Ejecutar la interfaz gráfica directamente
   ```
 - Esto abrira una interfaz gráfica de usuario.
 - Ensamblaje de genomas: Seleccionar "Ensamblaje de genomas a la Izquierda
 - En la pantalla principal seleccionar la tecnologia de secuenciación, serotipo o virus, esquema de primers (si aplica), y dar click en Ejecutar
-- El Ensamblaje de genomas se ejecutara, mostrando el progreso. al finalizr un archivo llamado "all_consnsus.fasta" se guardara en ell directorio indicado
+- El Ensamblaje de genomas se ejecutara, mostrando el progreso. al finalizar un archivo llamado "all_consensus.fasta" se guardara en el directorio indicado
 
-Ejemplo:
-```
-./CONSENSO DENV_1 '/home/ics2/CONSENSO_D/DENV1_fastq_pass'
-```
-  donde:
-  
-   ./CONSENSO : Nombre del script
-   
-   DENV_1 : nombre del serotipo
-   
-   '/home/ics2/CONSENSO_D/DENV1_fastq_pass' : Dirección exacta de la carpeta "DENV1_fastq_pass" que contiene los archivos fastq de dengue 1
+Información adicional:
+  - CONSENSO puede ensamblar los 4 serotipos de dengue seleccionado cada serotipo en el menú desplegable de "Seleccionar virus". También, al seleccionar "DENV_AUTO", el sistema podrá predecir automaticamente cual es el serotipo a ensamblar y generará la secuencia consenso eficientemente. En caso de que se halla utilizado una amplificación multiplex de los serotipos, esta caracteristica puede identificar co-infecciones y generar las secuencias consensos de los serotipos presentes en la muestra. Esta última caracterisca dependerá de la calidad de la secuenciación.
 
 
 *---------------------------------* 
 
 
 *Acerca del script contarX*
+
+Al acceder al directorio CONSENSO_D/Scripts se encontran una serie de Scripts que pueden ejecutarse manualmente. Se recomienda no modificar ningun Script para no modificar el flujo del sistema.
 
 contarX es un script que cuenta el número de gaps (X) en una o más secuencias consenso.
 Obtener el número de gaps es importante porque brinda una idea de la covertura de la secuencia de referencia obtenida con respecto a una secuencia completa de referencia. Esto brinda una idea de la calidad de la secuencia y de manera indirecta brinda nociones sobre la calidad de la secuenciación, calidad de la muestra, calidad de los primers y/o reactivos.
@@ -67,7 +72,7 @@ contarX toma cada una de la secuencias de nucleótidos y las trata como una cade
 
 INSTRUCCIONES
 - Abrir una terminal, haciendo click sobre el icono de la terminal o con la combinacion de teclas CTRL+ALT+T
-- escrinir el nombre del script: ./contarX
+- Escribir el nombre del script: ./contarX
 - Escribir la dirección del archivo fasta o arrastrarlo hacia la terminal.
 - Presionar la tecla enter
 
