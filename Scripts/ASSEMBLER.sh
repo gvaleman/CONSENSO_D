@@ -1,6 +1,6 @@
 #!/bin/bash
 
-
+#Este Script genera secuencias de Referencias del dengue
 # Salir a la carpeta home para asegurar que las rutas relativas sean correctas
 cd
 
@@ -323,8 +323,8 @@ if [ "$sequence_type" == "NANO" ]; then
         # Generar archivo VCF y secuencia consenso con multihilo
         bcftools mpileup -Ou -f "$fasta_file" Output.sorted.bam | bcftools call -c -Oz -o "${sample_name}_calls.vcf.gz"
         bcftools norm -f "$fasta_file" "${sample_name}_calls.vcf.gz" -Oz -o "${sample_name}_normalized.vcf.gz"
-        bcftools view -i 'QUAL10>' "${sample_name}_normalized.vcf.gz" | vcfutils.pl vcf2fq > SAMPLE_cns.fastq
-        seqtk seq -aQ64 -q10 -n N SAMPLE_cns.fastq > SAMPLE_cns.fasta
+        bcftools index "${sample_name}_normalized.vcf.gz"
+        cat "$fasta_file" | bcftools consensus -i 'QUAL>10' "${sample_name}_normalized.vcf.gz" > "SAMPLE_cns.fasta"
         echo ">${sample_name}" > "${sample_name}.fasta"
         tail -n +2 SAMPLE_cns.fasta >> "${sample_name}.fasta"
 

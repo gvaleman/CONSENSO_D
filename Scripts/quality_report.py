@@ -12,20 +12,24 @@ import plotly.graph_objects as go
 from plotly.offline import plot
 import datetime
 
+
+
+
+
 def parse_stats_file(stats_file):
     """Parsea archivo .stats de samtools y extrae métricas clave"""
     data = {}
     try:
-        with open(stats_file, 'r') as f:
+        with open(stats_file, "r") as f:
             for line in f:
-                if line.startswith('SN'):
-                    parts = line.strip().split('\t')
+                if line.startswith("SN"):
+                    parts = line.strip().split("\t")
                     if len(parts) >= 3:
-                        key = parts[1].replace(':', '').strip()
+                        key = parts[1].replace(":", "").strip()
                         value = parts[2].strip()
                         # Intentar convertir a número
                         try:
-                            if '.' in value:
+                            if "." in value:
                                 data[key] = float(value)
                             else:
                                 data[key] = int(value)
@@ -35,13 +39,17 @@ def parse_stats_file(stats_file):
         print(f"Error parseando {stats_file}: {e}")
     return data
 
+
+
 def main():
     work_dir = sys.argv[1] if len(sys.argv) > 1 else os.getcwd()
     print(f"Procesando: {work_dir}")
 
     # === COBERTURA ===
     print("\n=== COBERTURA ===")
-    coverage_files = glob.glob(os.path.join(work_dir, "**", "*.coverage"), recursive=True)
+    coverage_files = glob.glob(
+        os.path.join(work_dir, "**", "*.coverage"), recursive=True
+    )
     coverage_plots_cards = []
     coverage_stats = []
 
@@ -49,23 +57,29 @@ def main():
         sample_name = os.path.basename(coverage_file).replace(".coverage", "")
 
         try:
-            df = pd.read_csv(coverage_file, sep="\t", header=None, names=['Ref', 'Pos', 'Cov'])
-            df['Cov'] = pd.to_numeric(df['Cov'], errors='coerce').fillna(0)
-            df['Pos'] = pd.to_numeric(df['Pos'], errors='coerce').fillna(0)
+            df = pd.read_csv(
+                coverage_file, sep="\t", header=None, names=["Ref", "Pos", "Cov"]
+            )
+            df["Cov"] = pd.to_numeric(df["Cov"], errors="coerce").fillna(0)
+            df["Pos"] = pd.to_numeric(df["Pos"], errors="coerce").fillna(0)
 
-            print(f"  {sample_name}: {len(df)} posiciones, rango {df['Pos'].min()}-{df['Pos'].max()}")
+            print(
+                f"  {sample_name}: {len(df)} posiciones, rango {df['Pos'].min()}-{df['Pos'].max()}, max cov={df['Cov'].max()}"
+            )
 
             fig = go.Figure()
-            fig.add_trace(go.Bar(
-                x=df['Pos'],
-                y=df['Cov'],
-                name="Cobertura",
-                marker_color='blue',
-                width=1
-            ))
+            fig.add_trace(
+                go.Bar(
+                    x=df["Pos"],
+                    y=df["Cov"],
+                    name="Cobertura",
+                    marker_color="blue",
+                    width=1,
+                )
+            )
 
-            pos_min = df['Pos'].min()
-            pos_max = df['Pos'].max()
+            pos_min = df["Pos"].min()
+            pos_max = df["Pos"].max()
 
             fig.update_layout(
                 title=f"{sample_name}",
@@ -77,9 +91,9 @@ def main():
                     range=[pos_min - 50, pos_max + 50],
                     showgrid=True,
                     gridwidth=1,
-                    gridcolor='lightgray',
-                    tickmode='linear',
-                    dtick=max(1, (pos_max - pos_min) // 10)
+                    gridcolor="lightgray",
+                    tickmode="linear",
+                    dtick=max(1, (pos_max - pos_min) // 10),
                 ),
                 yaxis=dict(
                     range=[0, 1500],
@@ -89,26 +103,34 @@ def main():
                 ),
                 bargap=0,
                 showlegend=False,
-                margin=dict(l=50, r=30, t=50, b=50)
+                margin=dict(l=50, r=30, t=50, b=50),
             )
 
-            fig.add_hline(y=1000, line_dash="dash", line_color="red",
-                         annotation_text="1000x", annotation_position="top right")
+            fig.add_hline(
+                y=1000,
+                line_dash="dash",
+                line_color="red",
+                annotation_text="1000x",
+                annotation_position="top right",
+            )
 
-            plot_html = plot(fig, output_type='div', include_plotlyjs=False)
+            plot_html = plot(fig, output_type="div", include_plotlyjs="cdn")
             coverage_plots_cards.append(plot_html)
 
-            avg_cov = df['Cov'].mean()
+            avg_cov = df["Cov"].mean()
             coverage_stats.append(avg_cov)
             print(f"✓ {sample_name}: {avg_cov:.0f}x promedio")
 
         except Exception as e:
             print(f"❌ Error en {sample_name}: {e}")
+            import traceback
+
+            traceback.print_exc()
 
     # === READS Y Q-SCORES desde archivos .stats ===
     print("\n=== READS Y Q-SCORES (desde .stats) ===")
     stats_files = glob.glob(os.path.join(work_dir, "**", "*.stats"), recursive=True)
-    
+
     reads_mapped = {}
     reads_unmapped = {}
     reads_total = {}
@@ -118,23 +140,29 @@ def main():
         # Extraer nombre de muestra del archivo
         basename = os.path.basename(stats_file)
         # Remover prefijos comunes y extensión
-        sample_name = basename.replace('Output_', '').replace('.sorted.bam.stats', '').replace('.stats', '')
-        
+        sample_name = (
+            basename.replace("Output_", "")
+            .replace(".sorted.bam.stats", "")
+            .replace(".stats", "")
+        )
+
         data = parse_stats_file(stats_file)
-        
+
         if data:
             # Reads totales
-            total = data.get('raw total sequences', 0)
-            mapped = data.get('reads mapped', 0)
-            unmapped = data.get('reads unmapped', 0)
-            qscore = data.get('average quality', None)
-            
+            total = data.get("raw total sequences", 0)
+            mapped = data.get("reads mapped", 0)
+            unmapped = data.get("reads unmapped", 0)
+            qscore = data.get("average quality", None)
+
             if total > 0:
                 reads_total[sample_name] = total
                 reads_mapped[sample_name] = mapped
                 reads_unmapped[sample_name] = unmapped
-                print(f"✓ {sample_name}: {total:,} reads totales ({mapped:,} mapeadas, {unmapped:,} no mapeadas)")
-            
+                print(
+                    f"✓ {sample_name}: {total:,} reads totales ({mapped:,} mapeadas, {unmapped:,} no mapeadas)"
+                )
+
             if qscore is not None:
                 qscore_data[sample_name] = float(qscore)
                 print(f"  Q-score: {qscore}")
@@ -143,65 +171,73 @@ def main():
     reads_plot = ""
     if reads_total:
         samples = list(reads_total.keys())
-        
+
         fig = go.Figure()
-        
+
         # Barras apiladas
-        fig.add_trace(go.Bar(
-            name='Mapeadas',
-            x=samples,
-            y=[reads_mapped.get(s, 0) for s in samples],
-            marker_color='steelblue',
-            text=[f"{reads_mapped.get(s, 0):,}" for s in samples],
-            textposition='inside',
-            hovertemplate='<b>%{x}</b><br>Mapeadas: %{y:,}<extra></extra>'
-        ))
-        
-        fig.add_trace(go.Bar(
-            name='No Mapeadas',
-            x=samples,
-            y=[reads_unmapped.get(s, 0) for s in samples],
-            marker_color='lightcoral',
-            text=[f"{reads_unmapped.get(s, 0):,}" for s in samples],
-            textposition='inside',
-            hovertemplate='<b>%{x}</b><br>No Mapeadas: %{y:,}<extra></extra>'
-        ))
-        
+        fig.add_trace(
+            go.Bar(
+                name="Mapeadas",
+                x=samples,
+                y=[reads_mapped.get(s, 0) for s in samples],
+                marker_color="steelblue",
+                text=[f"{reads_mapped.get(s, 0):,}" for s in samples],
+                textposition="inside",
+                hovertemplate="<b>%{x}</b><br>Mapeadas: %{y:,}<extra></extra>",
+            )
+        )
+
+        fig.add_trace(
+            go.Bar(
+                name="No Mapeadas",
+                x=samples,
+                y=[reads_unmapped.get(s, 0) for s in samples],
+                marker_color="lightcoral",
+                text=[f"{reads_unmapped.get(s, 0):,}" for s in samples],
+                textposition="inside",
+                hovertemplate="<b>%{x}</b><br>No Mapeadas: %{y:,}<extra></extra>",
+            )
+        )
+
         fig.update_layout(
             title="Reads Totales por Muestra",
             xaxis_title="Muestra",
             yaxis_title="Número de Reads",
             template="plotly_white",
-            barmode='stack',
-            xaxis={'tickangle': 45},
+            barmode="stack",
+            xaxis={"tickangle": 45},
             height=350,
             showlegend=True,
-            legend=dict(x=0.01, y=0.99, bgcolor='rgba(255,255,255,0.8)')
+            legend=dict(x=0.01, y=0.99, bgcolor="rgba(255,255,255,0.8)"),
         )
-        
-        reads_plot = plot(fig, output_type='div', include_plotlyjs=False)
+
+        reads_plot = plot(fig, output_type="div", include_plotlyjs=False)
 
     # Gráfico de Q-scores
     qscore_plot = ""
     if qscore_data:
-        fig = go.Figure(data=[go.Bar(
-            x=list(qscore_data.keys()),
-            y=list(qscore_data.values()),
-            marker_color='green',
-            text=[f"{v:.1f}" for v in qscore_data.values()],
-            textposition='outside'
-        )])
-        
+        fig = go.Figure(
+            data=[
+                go.Bar(
+                    x=list(qscore_data.keys()),
+                    y=list(qscore_data.values()),
+                    marker_color="green",
+                    text=[f"{v:.1f}" for v in qscore_data.values()],
+                    textposition="outside",
+                )
+            ]
+        )
+
         fig.update_layout(
             title="Q-score Promedio por Muestra",
             xaxis_title="Muestra",
             yaxis_title="Q-score",
             template="plotly_white",
-            xaxis={'tickangle': 45},
-            height=350
+            xaxis={"tickangle": 45},
+            height=350,
         )
-        
-        qscore_plot = plot(fig, output_type='div', include_plotlyjs=False)
+
+        qscore_plot = plot(fig, output_type="div", include_plotlyjs=False)
 
     # Estadísticas finales
     avg_coverage = sum(coverage_stats) / len(coverage_stats) if coverage_stats else 0
@@ -220,7 +256,6 @@ def main():
 <head>
     <meta charset="UTF-8">
     <title>Reporte de Calidad</title>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         body {{ font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }}
         .header {{ background: #2c3e50; color: white; padding: 25px; border-radius: 15px; text-align: center; margin-bottom: 25px; }}
@@ -237,12 +272,13 @@ def main():
             .coverage-grid {{ grid-template-columns: 1fr; }}
         }}
     </style>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
     <div class="header">
         <h1>Reporte de Calidad de Secuenciación y Ensamblaje de Genomas</h1>
         <h2>CONSENSO</h2>
-        <p>Análisis Automático - {pd.Timestamp.now().strftime('%d/%m/%Y %H:%M')}</p>
+        <p>Fecha y hora: {pd.Timestamp.now().strftime("%d/%m/%Y %H:%M")}</p>
     </div>
 
     <div class="stats">
@@ -295,13 +331,16 @@ def main():
 
     # Guardar reporte
     output_file = os.path.join(work_dir, "reporte_calidad.html")
-    with open(output_file, 'w', encoding='utf-8') as f:
+    with open(output_file, "w", encoding="utf-8") as f:
         f.write(html)
 
     print(f"\n✅ Reporte generado: {output_file}")
     print(f"   - {total_samples} muestras procesadas")
     print(f"   - {len(reads_total)} con datos de reads")
     print(f"   - {len(qscore_data)} con datos de Q-score")
+
+
+
 
 if __name__ == "__main__":
     main()

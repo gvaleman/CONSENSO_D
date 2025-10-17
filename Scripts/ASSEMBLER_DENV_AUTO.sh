@@ -174,6 +174,18 @@ classify_serotype_automatically() {
                 # Profundidad promedio
                 avg_depth=$(awk '{sum+=$3; count++} END {if(count>0) printf "%.2f", sum/count; else print "0"}' "$depth_file")
 
+                # CAMBIO 1: Filtrar serotipos con profundidad menor a 100x
+                if (( $(echo "$avg_depth < 100" | bc -l) )); then
+                    echo "     $serotype: Profundidad insuficiente (${avg_depth}x < 100 requerido)" >&2
+                    echo "$serotype,0,0,0,0" >> "${sample_name}_serotype_metrics.csv"
+                    coverage_results[$serotype]=0
+                    depth_results[$serotype]=0
+                    mapped_reads[$serotype]=0
+                    rm -f "$depth_file"
+                    rm -f "${sample_name}_${serotype}_temp.bam" "${sample_name}_${serotype}_temp.bam.bai"
+                    continue
+                fi
+
                 # Longitud del genoma de referencia
                 genome_length=$(samtools view -H "${sample_name}_${serotype}_temp.bam" | \
                                grep -E "^@SQ" | awk '{print $3}' | cut -d: -f2)
@@ -229,29 +241,35 @@ classify_serotype_automatically() {
         fi
     done
 
-    # Evaluar calidad de la clasificación
+    # CAMBIO 2: Evaluar calidad de la clasificación con umbrales más estrictos
     classification_confidence="LOW"
     coinfection_detected=false
+    best_depth=${depth_results[$best_serotype]:-0}
 
-    if (( $(echo "$best_coverage >= 70" | bc -l) )); then
+    # CAMBIO 3: Verificar que el mejor serotipo tenga al menos 100x de profundidad
+    if (( $(echo "$best_depth < 100" | bc -l) )); then
+        classification_confidence="LOW"
+    elif (( $(echo "$best_coverage >= 85" | bc -l) )); then
         if (( $(echo "$second_best_coverage < 30" | bc -l) )); then
             classification_confidence="HIGH"
-        elif (( $(echo "$second_best_coverage < 50" | bc -l) )); then
+        elif (( $(echo "$second_best_coverage < 100" | bc -l) )); then
             classification_confidence="MEDIUM"
         else
             classification_confidence="LOW"
             coinfection_detected=true
         fi
-    elif (( $(echo "$best_coverage >= 50" | bc -l) )); then
+    elif (( $(echo "$best_coverage >= 70" | bc -l) )); then
         classification_confidence="MEDIUM"
     fi
 
-    # Detectar co-infecciones
+    # CAMBIO 4: Detectar co-infecciones con criterios más estrictos
     coinfection_serotypes=""
     if [ "$coinfection_detected" = true ]; then
         for serotype in DENV_1 DENV_2 DENV_3 DENV_4; do
             current_coverage=${coverage_results[$serotype]:-0}
-            if (( $(echo "$current_coverage >= 30" | bc -l) )); then
+            current_depth=${depth_results[$serotype]:-0}
+            # Requiere 75% cobertura Y 100 profundidad para considerar coinfección
+            if (( $(echo "$current_coverage >= 75" | bc -l) )) && (( $(echo "$current_depth >= 100" | bc -l) )); then
                 if [ -n "$coinfection_serotypes" ]; then
                     coinfection_serotypes="${coinfection_serotypes}+${serotype}"
                 else
@@ -286,9 +304,11 @@ classify_serotype_automatically() {
 
         echo "$coinfection_serotypes" | tr '+' ' '
         return 0
-    elif [ -n "$best_serotype" ] && (( $(echo "$best_coverage >= 50" | bc -l) )); then
+    # CAMBIO 5: Umbral mínimo de 70% cobertura (antes 50%) y verificar profundidad >= 100x
+    elif [ -n "$best_serotype" ] && (( $(echo "$best_coverage >= 70" | bc -l) )) && (( $(echo "$best_depth >= 100" | bc -l) )); then
         echo -e "   ${GREEN}✅ SEROTIPO DETECTADO: ${BOLD}$best_serotype${RESET}" >&2
         echo -e "   ${YELLOW}📊 Cobertura: ${best_coverage}%${RESET}" >&2
+        echo -e "   ${YELLOW}📊 Profundidad: ${best_depth}x${RESET}" >&2
         echo -e "   ${YELLOW}🎯 Confianza: $classification_confidence${RESET}" >&2
 
         cp "$classification_file" "../Serotype_Classification/${sample_name}_serotype_classification.txt"
@@ -299,6 +319,7 @@ classify_serotype_automatically() {
     else
         echo -e "   ${RED}❌ NO SE PUDO DETERMINAR SEROTIPO${RESET}" >&2
         echo -e "   ${YELLOW}📊 Mejor cobertura: ${best_coverage}% ($best_serotype)${RESET}" >&2
+        echo -e "   ${YELLOW}📊 Profundidad: ${best_depth}x${RESET}" >&2
 
         cp "$classification_file" "../Serotype_Classification/${sample_name}_serotype_classification.txt"
         cp "${sample_name}_serotype_metrics.csv" "../Serotype_Classification/${sample_name}_serotype_metrics.csv"
@@ -393,7 +414,7 @@ if [ "$sequence_type" == "NANO" ]; then
         if [ -n "$PRIMERS_FASTA" ] && [ -f "$muestra" ]; then
             echo "Recortando primers con cutadapt..."
             mv "$muestra" "${muestra}.original"
-            cutadapt -g file:"$PRIMERS_FASTA" -a file:"$PRIMERS_FASTA" -o "$muestra" "${muestra}.original" --minimum-length 50 -j $threads
+            cutadapt -g file:"$PRIMERS_FASTA" -a file:"$PRIMERS_FASTA" -o "$muestra" "${muestra}.original" --minimum-length 100 -j $threads
             rm "${muestra}.original"
         fi
 
@@ -441,10 +462,10 @@ plot '${sample_name}_${detected_serotype}.coverage' using 2:3 with lines linecol
             gnuplot coverage_plot.gnuplot
 
             echo "   Generando secuencia consenso..."
-            bcftools mpileup -Ou -f "$fasta_file" Output.sorted.bam | bcftools call -c -Oz -o "${sample_name}_${detected_serotype}_calls.vcf.gz"
+            bcftools mpileup -Ou -f "$fasta_file" -Q 11 -d 8000 Output.sorted.bam | bcftools call -c -Oz -o "${sample_name}_${detected_serotype}_calls.vcf.gz" #bcftools mpileup -Ou -f "$fasta_file" Output.sorted.bam | bcftools call -c -Oz -o "${sample_name}_${detected_serotype}_calls.vcf.gz"
             bcftools norm -f "$fasta_file" "${sample_name}_${detected_serotype}_calls.vcf.gz" -Oz -o "${sample_name}_${detected_serotype}_normalized.vcf.gz"
-            bcftools view -i 'QUAL>10' "${sample_name}_${detected_serotype}_normalized.vcf.gz" | vcfutils.pl vcf2fq > SAMPLE_cns.fastq
-            seqtk seq -aQ64 -q10 -n N SAMPLE_cns.fastq > SAMPLE_cns.fasta
+            bcftools view -i 'QUAL>20 && DP>=100' "${sample_name}_${detected_serotype}_normalized.vcf.gz" | vcfutils.pl vcf2fq -d 100 > SAMPLE_cns.fastq #bcftools view -i 'QUAL>10' "${sample_name}_${detected_serotype}_normalized.vcf.gz" | vcfutils.pl vcf2fq > SAMPLE_cns.fastq
+            seqtk seq -aQ64 -q20 -n N SAMPLE_cns.fastq > SAMPLE_cns.fasta #seqtk seq -aQ64 -q10 -n N SAMPLE_cns.fastq > SAMPLE_cns.fasta
 
             echo ">${sample_name}_${detected_serotype}" > "${sample_name}_${detected_serotype}.fasta"
             tail -n +2 SAMPLE_cns.fasta >> "${sample_name}_${detected_serotype}.fasta"
@@ -494,13 +515,13 @@ elif [ "$sequence_type" == "ILLUMINA" ]; then
                     "$R1_trimmed" "$R1_unpaired" \
                     "$R2_trimmed" "$R2_unpaired" \
                     ILLUMINACLIP:"../$ADAPTERS_FASTA":2:30:10 \
-                    SLIDINGWINDOW:4:20 MINLEN:50
+                    SLIDINGWINDOW:4:20 MINLEN:100
             else
                 trimmomatic PE -threads $threads \
                     "$R1_file" "$R2_file" \
                     "$R1_trimmed" "$R1_unpaired" \
                     "$R2_trimmed" "$R2_unpaired" \
-                    SLIDINGWINDOW:4:20 MINLEN:50
+                    SLIDINGWINDOW:4:20 MINLEN:100
             fi
 
             if [ -n "$PRIMERS_FASTA" ]; then
@@ -510,7 +531,7 @@ elif [ "$sequence_type" == "ILLUMINA" ]; then
                 cutadapt -g file:"$PRIMERS_FASTA" -G file:"$PRIMERS_FASTA" \
                     -o "$R1_final" -p "$R2_final" \
                     "$R1_trimmed" "$R2_trimmed" \
-                    --minimum-length 50 \
+                    --minimum-length 100 \
                     -j $threads
 
                 R1_for_mapping="$R1_final"
