@@ -18,7 +18,7 @@ Dependencias:
   - Miniconda3: CONSENSO_D trabaja con un entorno de Anaconda. Si no conoce como instalar Anaconda puede revisar su pagina web (https://www.anaconda.com/docs/getting-started/miniconda/install#linux-terminal-installer)
   - git: El repositorio de CONSENSO debe ser clonado a un repositorio local en su computadora mediante git.
 
-Configurando CONSENSO
+# INSTALANDO CONSENSO
 
   CLONAR EL REPOSITORIO
 
@@ -57,7 +57,15 @@ INSTRUCCIONES:
 Información adicional:
   - CONSENSO puede ensamblar los 4 serotipos de dengue seleccionado cada serotipo en el menú desplegable de "Seleccionar virus". También, al seleccionar "DENV_AUTO", el sistema podrá predecir automaticamente cual es el serotipo a ensamblar y generará la secuencia consenso eficientemente. En caso de que se halla utilizado una amplificación multiplex de los serotipos, esta caracteristica puede identificar co-infecciones y generar las secuencias consensos de los serotipos presentes en la muestra. Esta última caracterisca dependerá de la calidad de la secuenciación.
 
-
+# ACTUALIZAR CONSENSO
+Si ya tienes COSNENSO, es recomendabla actualizarlo frecuentemente, ya que esta primera versión esta bajo desarollo.
+Para actualizarlo solo debes "jalar" los cambios desde github y actualizar el entorno conda a como se meustra a continuacion.
+ ```
+ cd
+ cd CONSENSO_D
+ git pull
+ conda env update -f environment.yml --prune
+ ```
 *---------------------------------* 
 
 
