@@ -324,7 +324,7 @@ if [ "$sequence_type" == "NANO" ]; then
         bcftools mpileup -Ou -f "$fasta_file" Output.sorted.bam | bcftools call -c -Oz -o "${sample_name}_calls.vcf.gz"
         bcftools norm -f "$fasta_file" "${sample_name}_calls.vcf.gz" -Oz -o "${sample_name}_normalized.vcf.gz"
         bcftools index "${sample_name}_normalized.vcf.gz"
-        cat "$fasta_file" | bcftools consensus -i 'QUAL>10' "${sample_name}_normalized.vcf.gz" > "SAMPLE_cns.fasta"
+        cat "$fasta_file" | bcftools consensus -N -i 'QUAL>10' "${sample_name}_normalized.vcf.gz" > "SAMPLE_cns.fasta"
         echo ">${sample_name}" > "${sample_name}.fasta"
         tail -n +2 SAMPLE_cns.fasta >> "${sample_name}.fasta"
 
@@ -478,7 +478,9 @@ elif [ "$sequence_type" == "ILLUMINA" ]; then
             rm "$R1_unpaired" "$R2_unpaired" 2>/dev/null || true
 
         else
-            echo "No se encontraron archivos R1 y R2 adecuados en $sample_dir"
+            echo "Warning: No valid Illumina FASTQ files found in $sample_dir. Skipping..."
+            cd ..
+            continue
         fi
 
         cd ..
